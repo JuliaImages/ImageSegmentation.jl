@@ -8,8 +8,6 @@ include("region_growing.jl")
 
 export
     # methods
-    srg,
-    # types
-    Point
+    srg
 
 end # module
