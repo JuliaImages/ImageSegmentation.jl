@@ -63,6 +63,8 @@ end
 function seeded_region_growing{CT<:Colorant, N}(img::AbstractArray{CT,N}, seeds::AbstractVector{Tuple{CartesianIndex{N},Int}},
     neighbourhood::Function, diff_fn::Function = default_diff_fn)
 
+    const _QUEUE_SZ = 10
+
     # Check if labels are positive integers
     for seed in seeds
         seed[2] > 0 || error("Seed labels need to be positive integers!")
@@ -70,11 +72,11 @@ function seeded_region_growing{CT<:Colorant, N}(img::AbstractArray{CT,N}, seeds:
 
     # Required data structures
     result              =   similar(dims->fill(-1,dims), indices(img))              # Array to store labels
-    nhq                 =   Queue(CartesianIndex{N})                                # Neighbours holding queue
+    nhq                 =   Queue(CartesianIndex{N}, _QUEUE_SZ)                     # Neighbours holding queue
     pq                  =   PriorityQueue(Queue{CartesianIndex{N}}, Float64)        # Priority Queue to hold the queues of same δ value
     qdict               =   Dict{Float64, Queue{CartesianIndex{N}}}()               # A map to get a reference to queue using the δ value
-    labelsq             =   Queue(Int)                                              # Queue to hold labels
-    holdingq            =   Queue(CartesianIndex{N})                                # Queue to hold points corresponding to the labels in `labelsq`
+    labelsq             =   Queue(Int, _QUEUE_SZ)                                   # Queue to hold labels
+    holdingq            =   Queue(CartesianIndex{N}, _QUEUE_SZ)                     # Queue to hold points corresponding to the labels in `labelsq`
     region_means        =   Dict{Int, Images.accum(CT)}()                           # A map containing (label, mean) pairs
     region_pix_count    =   Dict{Int, Int}()                                        # A map containing (label, pixel_count) pairs
     labels              =   Vector{Int}()                                           # A vector containing list of labels
@@ -90,7 +92,7 @@ function seeded_region_growing{CT<:Colorant, N}(img::AbstractArray{CT,N}, seeds:
     end
 
     # Push an empty queue of priority Inf to store "Tied" points
-    q = Queue(CartesianIndex{N})
+    q = Queue(CartesianIndex{N}, _QUEUE_SZ)
     enqueue!(pq, q, Inf)
     qdict[Inf] = q
 
@@ -129,7 +131,7 @@ function seeded_region_growing{CT<:Colorant, N}(img::AbstractArray{CT,N}, seeds:
             if haskey(qdict, δ)
                 enqueue!(qdict[δ], p)
             else
-                q = Queue(CartesianIndex{N})
+                q = Queue(CartesianIndex{N}, _QUEUE_SZ)
                 enqueue!(q, p)
                 enqueue!(pq, q, δ)
                 qdict[δ] = q
