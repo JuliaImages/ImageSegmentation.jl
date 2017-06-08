@@ -1,5 +1,7 @@
-wrapping_type{CT<:Colorant}(::Type{CT}) = base_colorant_type(CT){FixedPointNumbers.floattype(eltype(CT))}
-
+"""
+`SegmentedImage` type contains the index-label mapping, assigned labels,
+segment mean intensity and pixel count of each segment.
+"""
 immutable SegmentedImage{T<:AbstractArray,U<:Colorant}
     img::T
     segment_labels::Vector{Int}

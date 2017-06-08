@@ -4,8 +4,6 @@ module ImageSegmentation
 
 using Images, DataStructures
 
-using FixedPointNumbers: floattype
-
 include("core.jl")
 include("region_growing.jl")
 

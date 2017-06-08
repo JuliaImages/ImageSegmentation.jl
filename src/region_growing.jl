@@ -1,23 +1,67 @@
 
-# An implementation of the Improved Seeded Region Growing Algorithm in Julia
-#
-# Citation:
-# Albert Mehnert, Paul Jackaway (1997), "An improved seeded region growing algorithm"
-# http://www.ee.bgu.ac.il/~itzik/IP5211/Other/Projects/P19_Seeded%20region%20growing.pdf
+default_diff_fn{CT1<:Colorant, CT2<:Colorant}(c1::CT1,c2::CT2) = sqrt(sum(abs2,(c1)-Images.accum(CT2)(c2)))
 
+"""
+    seg_img = seeded_region_growing(img, seeds, [kernel_dim], [diff_fn])
+    seg_img = seeded_region_growing(img, seeds, [neighbourhood], [diff_fn])
+
+Segments the N-D image `img` using the seeded region growing algorithm
+and returns a [`SegmentedImage`](@ref) containing information about the segments.
+
+# Arguments:
+* `img`             :  N-D image to be segmented (arbitrary indices are allowed)
+* `seeds`           :  `Vector` containing seeds. Each seed is a Tuple of a
+                       CartesianIndex{N} and a label. See below note for more
+                       information on labels.
+* `kernel_dim`      :  (Optional) `Vector{Int}` having length N whose ith element
+                       is an odd positive integer representing the length of the
+                       ith edge of the N-orthotopic neighbourhood
+* `neighbourhood`   :  (Optional) Function taking CartesianIndex{N} as input and
+                       returning the neighbourhood of that point.
+* `diff_fn`         :  (Optional) Function that returns a difference measure(δ)
+                       between a region mean and a point
+
+!!! note
+    The labels attached to points must be positive integers, although multiple
+    points can be assigned the same label. The output includes a labelled array
+    that has same indexing as that of input image. Every index is assigned to
+    either one of labels or a special label '0' indicating that the algorithm
+    was unable to assign that index to a unique label.
+
+# Examples
+
+```jldoctest
+julia> img = zeros(Gray{N0f8},4,4);
+julia> img[2:4,2:4] = 1;
+julia> seeds = [(CartesianIndex(3,1),1),(CartesianIndex(2,2),2)];
+julia> seg = seeded_region_growing(img, seeds);
+julia> seg.img
+4×4 Array{Int64,2}:
+ 1  1  1  1
+ 1  2  2  2
+ 1  2  2  2
+ 1  2  2  2
+
+```
+
+# Citation:
+
+Albert Mehnert, Paul Jackaway (1997), "An improved seeded region growing algorithm",
+Pattern Recognition Letters 18 (1997), 1065-1071
+"""
 function seeded_region_growing{CT<:Colorant, N}(img::AbstractArray{CT,N}, seeds::AbstractVector{Tuple{CartesianIndex{N},Int}},
-    kernel_dim::Vector{Int} = [3 for i in 1:N], diff_fn::Function = (c1,c2)->(sqrt(sum(abs2,wrapping_type(CT)(c1)-wrapping_type(CT)(c2)))))
+    kernel_dim::Vector{Int} = [3 for i in 1:N], diff_fn::Function = default_diff_fn)
     length(kernel_dim) == N || error("Dimension count of image and kernel_dim do not match")
     for dim in kernel_dim
         dim > 0 || error("Dimensions of the kernel must be positive")
         isodd(dim) || error("Dimensions of the kernel must be odd")
     end
-    pt = CartesianIndex([floor(Int, dim/2) for dim in kernel_dim]...)
+    pt = CartesianIndex([dim ÷ 2 for dim in kernel_dim]...)
     seeded_region_growing(img, seeds, ((c)->CartesianRange(c-pt,c+pt)), diff_fn)
 end
 
 function seeded_region_growing{CT<:Colorant, N}(img::AbstractArray{CT,N}, seeds::AbstractVector{Tuple{CartesianIndex{N},Int}},
-    neighbourhood::Function, diff_fn::Function = (c1,c2)->(sqrt(sum(abs2,wrapping_type(CT)(c1)-wrapping_type(CT)(c2)))))
+    neighbourhood::Function, diff_fn::Function = default_diff_fn)
 
     # Check if labels are positive integers
     for seed in seeds
@@ -31,7 +75,7 @@ function seeded_region_growing{CT<:Colorant, N}(img::AbstractArray{CT,N}, seeds:
     qdict               =   Dict{Float64, Queue{CartesianIndex{N}}}()               # A map to get a reference to queue using the δ value
     labelsq             =   Queue(Int)                                              # Queue to hold labels
     holdingq            =   Queue(CartesianIndex{N})                                # Queue to hold points corresponding to the labels in `labelsq`
-    region_means        =   Dict{Int, wrapping_type(CT)}()                          # A map containing (label, mean) pairs
+    region_means        =   Dict{Int, Images.accum(CT)}()                           # A map containing (label, mean) pairs
     region_pix_count    =   Dict{Int, Int}()                                        # A map containing (label, pixel_count) pairs
     labels              =   Vector{Int}()                                           # A vector containing list of labels
 
@@ -39,7 +83,7 @@ function seeded_region_growing{CT<:Colorant, N}(img::AbstractArray{CT,N}, seeds:
     for seed in seeds
         result[seed[1]] = seed[2]
         region_pix_count[seed[2]] = get!(region_pix_count, seed[2], 0) + 1
-        region_means[seed[2]] = get!(region_means, seed[2], zero(wrapping_type(CT))) * (1-1/region_pix_count[seed[2]]) + img[seed[1]]/(region_pix_count[seed[2]])
+        region_means[seed[2]] = get!(region_means, seed[2], zero(Images.accum(CT))) + (img[seed[1]] - get!(region_means, seed[2], zero(Images.accum(CT))))/(region_pix_count[seed[2]])
         if ! (seed[2] in labels)
             push!(labels, seed[2])
         end
@@ -61,7 +105,7 @@ function seeded_region_growing{CT<:Colorant, N}(img::AbstractArray{CT,N}, seeds:
     # Enqueue all the neighbours of seeds into `nhq`
     for seed in seeds
         for point in neighbourhood(seed[1])
-            if point != seed[1] && checkbounds(Bool, img, point) && result[point] != -2
+            if point != seed[1] && checkbounds(Bool, img, point) && result[point] == -1
                 enqueue!(nhq, point)
                 @inbounds result[point] = -2
             end
@@ -114,7 +158,7 @@ function seeded_region_growing{CT<:Colorant, N}(img::AbstractArray{CT,N}, seeds:
                                     mindiff = curr_diff
                                     mindifflabel = result[point]
                                     istie = false
-                                else curr_diff == mindiff
+                                elseif curr_diff == mindiff
                                     istie = true
                                 end
                             end
@@ -141,8 +185,7 @@ function seeded_region_growing{CT<:Colorant, N}(img::AbstractArray{CT,N}, seeds:
             result[p] = label
             if label != 0
                 region_pix_count[label] += 1
-                region_means[label] *= (1-1/region_pix_count[label])
-                region_means[label] += img[p]/(region_pix_count[label])
+                region_means[label] += (img[p] - region_means[label])/(region_pix_count[label])
                 for point in neighbourhood(p)
                     if point!=p && checkbounds(Bool, img, point) && (result[point] == -1 || result[point] == -3)
                         enqueue!(nhq, point)

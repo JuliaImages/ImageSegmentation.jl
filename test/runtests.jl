@@ -1,5 +1,3 @@
-using ImageSegmentation
-using Base.Test
+using ImageSegmentation, Images, Base.Test
 
-# write your own tests here
-@test 1 == 2
+include("region_growing.jl")
