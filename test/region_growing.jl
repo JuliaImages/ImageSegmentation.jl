@@ -1,4 +1,4 @@
-get_wrapped{CT<:Colorant}(p::CT) = Images.accum(typeof(p))(p)
+of_accum_type(p::Colorant) = Images.accum(typeof(p))(p)
 
 @testset "Seeded Region Growing" begin
     # 2-D image
@@ -11,7 +11,7 @@ get_wrapped{CT<:Colorant}(p::CT) = Images.accum(typeof(p))(p)
     expected[6:10,4:8] = 3
     expected[3:7,2:6] = 2
     expected_labels = [1,2,3]
-    expected_means = Dict(1 => get_wrapped(img[3,9]), 2 => get_wrapped(img[5,2]), 3 => get_wrapped(img[9,7]))
+    expected_means = Dict(1 => of_accum_type(img[3,9]), 2 => of_accum_type(img[5,2]), 3 => of_accum_type(img[9,7]))
     expected_count = Dict(1 => 56, 2 => 25, 3 => 19)
 
     seg = seeded_region_growing(img, seeds)
@@ -52,7 +52,7 @@ get_wrapped{CT<:Colorant}(p::CT) = Images.accum(typeof(p))(p)
     expected_means = Dict(1=>Gray{Float64}(0.0), 2=>Gray{Float64}(1/3))
     expected_count = Dict(1=>1, 2=>24)
 
-    seg = seeded_region_growing(img, seeds, [3,3])
+    seg = seeded_region_growing(img, seeds, (3,3))
     @test all(label->(label in expected_labels), seg.segment_labels)
     @test all(label->(label in seg.segment_labels), expected_labels)
     @test expected_count == seg.segment_pixel_count
@@ -66,7 +66,7 @@ get_wrapped{CT<:Colorant}(p::CT) = Images.accum(typeof(p))(p)
     expected_means = Dict(1=>Gray{N0f8}(0.0), 2=>Gray{N0f8}(1.0))
     expected_count = Dict(1=>17, 2=>8)
 
-    seg = seeded_region_growing(img, seeds, [5,5])
+    seg = seeded_region_growing(img, seeds, (5,5))
     @test all(label->(label in expected_labels), seg.segment_labels)
     @test all(label->(label in seg.segment_labels), expected_labels)
     @test expected_count == seg.segment_pixel_count
@@ -83,7 +83,7 @@ get_wrapped{CT<:Colorant}(p::CT) = Images.accum(typeof(p))(p)
     expected[3:7,3:7,3:7] = 2
     expected[2:5,5:9,4:6] = 3
     expected_labels = [1,2,3]
-    expected_means = Dict([(i, get_wrapped(img[seeds[i][1]])) for i in 1:3])
+    expected_means = Dict([(i, of_accum_type(img[seeds[i][1]])) for i in 1:3])
     expected_count = Dict(1=>571, 2=>98, 3=>60)
 
     seg = seeded_region_growing(img, seeds)
@@ -119,7 +119,7 @@ get_wrapped{CT<:Colorant}(p::CT) = Images.accum(typeof(p))(p)
     expected_means = Dict(1=>RGB{Float64}(0.4,1.0,0.0), 2=>RGB{Float64}(0.0,0.0,0.0))
     expected_count = Dict(0=>3, 1=>3, 2=>3)
 
-    seg = seeded_region_growing(img, seeds, [3,3], (c1,c2)->abs(get_wrapped(c1).r - get_wrapped(c2).r))
+    seg = seeded_region_growing(img, seeds, [3,3], (c1,c2)->abs(of_accum_type(c1).r - of_accum_type(c2).r))
     @test all(label->(label in expected_labels), seg.segment_labels)
     @test all(label->(label in seg.segment_labels), expected_labels)
     @test expected_count == seg.segment_pixel_count

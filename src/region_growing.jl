@@ -13,13 +13,13 @@ and returns a [`SegmentedImage`](@ref) containing information about the segments
 * `seeds`           :  `Vector` containing seeds. Each seed is a Tuple of a
                        CartesianIndex{N} and a label. See below note for more
                        information on labels.
-* `kernel_dim`      :  (Optional) `Vector{Int}` having length N whose ith element
-                       is an odd positive integer representing the length of the
-                       ith edge of the N-orthotopic neighbourhood
+* `kernel_dim`      :  (Optional) `Vector{Int}` having length N or a `NTuple{N,Int}`
+                       whose ith element is an odd positive integer representing
+                       the length of the ith edge of the N-orthotopic neighbourhood
 * `neighbourhood`   :  (Optional) Function taking CartesianIndex{N} as input and
                        returning the neighbourhood of that point.
 * `diff_fn`         :  (Optional) Function that returns a difference measure(δ)
-                       between a region mean and a point
+                       between the mean color of a region and color of a point
 
 !!! note
     The labels attached to points must be positive integers, although multiple
@@ -50,7 +50,7 @@ Albert Mehnert, Paul Jackaway (1997), "An improved seeded region growing algorit
 Pattern Recognition Letters 18 (1997), 1065-1071
 """
 function seeded_region_growing{CT<:Colorant, N}(img::AbstractArray{CT,N}, seeds::AbstractVector{Tuple{CartesianIndex{N},Int}},
-    kernel_dim::Vector{Int} = [3 for i in 1:N], diff_fn::Function = default_diff_fn)
+    kernel_dim::Union{Vector{Int}, NTuple{N, Int}} = [3 for i in 1:N], diff_fn::Function = default_diff_fn)
     length(kernel_dim) == N || error("Dimension count of image and kernel_dim do not match")
     for dim in kernel_dim
         dim > 0 || error("Dimensions of the kernel must be positive")
