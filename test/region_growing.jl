@@ -19,7 +19,7 @@ of_accum_type(p::Colorant) = Images.accum(typeof(p))(p)
     @test all(label->(label in seg.segment_labels), expected_labels)
     @test expected_count == seg.segment_pixel_count
     @test expected_means == seg.segment_means
-    @test seg.img == expected
+    @test seg.image_indexmap == expected
 
     # Custom neighbourhood using a function
     seg = seeded_region_growing(img, seeds, c->[CartesianIndex(c[1]-1,c[2]), CartesianIndex(c[1]+1,c[2]), CartesianIndex(c[1],c[2]-1), CartesianIndex(c[1],c[2]+1)])
@@ -27,7 +27,7 @@ of_accum_type(p::Colorant) = Images.accum(typeof(p))(p)
     @test all(label->(label in seg.segment_labels), expected_labels)
     @test expected_count == seg.segment_pixel_count
     @test expected_means == seg.segment_means
-    @test seg.img == expected
+    @test seg.image_indexmap == expected
 
     # Offset image
     img = centered(img)
@@ -38,7 +38,7 @@ of_accum_type(p::Colorant) = Images.accum(typeof(p))(p)
     @test all(label->(label in seg.segment_labels), expected_labels)
     @test expected_count == seg.segment_pixel_count
     @test expected_means == seg.segment_means
-    @test seg.img == expected
+    @test seg.image_indexmap == expected
 
     # Custom neighbourhood using a [3,3] vs [5,5] kernel
     img = zeros(Gray{N0f8}, 5, 5)
@@ -57,7 +57,7 @@ of_accum_type(p::Colorant) = Images.accum(typeof(p))(p)
     @test all(label->(label in seg.segment_labels), expected_labels)
     @test expected_count == seg.segment_pixel_count
     @test all(label->(expected_means[label] ≈ seg.segment_means[label]), seg.segment_labels)
-    @test seg.img == expected
+    @test seg.image_indexmap == expected
 
     expected = ones(Int, 5, 5)
     expected[2:4,2:4] = 2
@@ -71,7 +71,7 @@ of_accum_type(p::Colorant) = Images.accum(typeof(p))(p)
     @test all(label->(label in seg.segment_labels), expected_labels)
     @test expected_count == seg.segment_pixel_count
     @test expected_means == seg.segment_means
-    @test seg.img == expected
+    @test seg.image_indexmap == expected
 
     # 3-d image
     img = zeros(RGB{N0f8},(9,9,9))
@@ -91,7 +91,7 @@ of_accum_type(p::Colorant) = Images.accum(typeof(p))(p)
     @test all(label->(label in seg.segment_labels), expected_labels)
     @test expected_count == seg.segment_pixel_count
     @test expected_means == seg.segment_means
-    @test seg.img == expected
+    @test seg.image_indexmap == expected
 
     # custom diff_fn
     img = zeros(RGB{N0f8},(3,3))
@@ -110,7 +110,7 @@ of_accum_type(p::Colorant) = Images.accum(typeof(p))(p)
     @test all(label->(label in seg.segment_labels), expected_labels)
     @test expected_count == seg.segment_pixel_count
     @test expected_means == seg.segment_means
-    @test seg.img == expected
+    @test seg.image_indexmap == expected
 
     expected = ones(Int, (3,3))
     expected[1:3,2] = 0
@@ -124,5 +124,5 @@ of_accum_type(p::Colorant) = Images.accum(typeof(p))(p)
     @test all(label->(label in seg.segment_labels), expected_labels)
     @test expected_count == seg.segment_pixel_count
     @test expected_means == seg.segment_means
-    @test seg.img == expected
+    @test seg.image_indexmap == expected
 end
