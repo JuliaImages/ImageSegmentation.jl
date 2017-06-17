@@ -284,9 +284,10 @@ function unseeded_region_growing{CT<:Colorant,N}(img::AbstractArray{CT,N}, thres
         point = dequeue!(neighbours)
         δ = Inf
         minlabel = -1
+        pixelval = img[point]
         for p in neighbourhood(point)
             if p != point && checkbounds(Bool, img, p) && result[p] > 0
-                curδ = diff_fn(region_means[result[p]], img[point])
+                curδ = diff_fn(region_means[result[p]], pixelval)
                 if curδ < δ
                     δ = curδ
                     minlabel = result[p]
@@ -302,7 +303,7 @@ function unseeded_region_growing{CT<:Colorant,N}(img::AbstractArray{CT,N}, thres
             δ = Inf
             minlabel = -1
             for label in labels
-                curδ = diff_fn(region_means[label], img[point])
+                curδ = diff_fn(region_means[label], pixelval)
                 if curδ < δ
                     δ = curδ
                     minlabel = label
@@ -321,7 +322,7 @@ function unseeded_region_growing{CT<:Colorant,N}(img::AbstractArray{CT,N}, thres
 
         #Update region_means
         region_pix_count[minlabel] = get(region_pix_count, minlabel, 0) + 1
-        region_means[minlabel] = get(region_means, minlabel, zero(Images.accum(CT))) + (img[point] - get(region_means, minlabel, zero(Images.accum(CT))))/(region_pix_count[minlabel])
+        region_means[minlabel] = get(region_means, minlabel, zero(Images.accum(CT))) + (pixelval - get(region_means, minlabel, zero(Images.accum(CT))))/(region_pix_count[minlabel])
 
         # Enqueue neighbours of `point`
         for p in neighbourhood(point)
