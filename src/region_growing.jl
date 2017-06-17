@@ -49,15 +49,17 @@ julia> seg.image_indexmap
 Albert Mehnert, Paul Jackaway (1997), "An improved seeded region growing algorithm",
 Pattern Recognition Letters 18 (1997), 1065-1071
 """
+
 function seeded_region_growing{CT<:Colorant, N}(img::AbstractArray{CT,N}, seeds::AbstractVector{Tuple{CartesianIndex{N},Int}},
-    kernel_dim::Union{Vector{Int}, NTuple{N, Int}} = [3 for i in 1:N], diff_fn::Function = default_diff_fn)
+    kernel_dim::Union{Vector{Int}, NTuple{N, Int}} = ntuple(i->3,N), diff_fn::Function = default_diff_fn)
     length(kernel_dim) == N || error("Dimension count of image and kernel_dim do not match")
     for dim in kernel_dim
         dim > 0 || error("Dimensions of the kernel must be positive")
         isodd(dim) || error("Dimensions of the kernel must be odd")
     end
-    pt = CartesianIndex([dim ÷ 2 for dim in kernel_dim]...)
-    seeded_region_growing(img, seeds, ((c)->CartesianRange(c-pt,c+pt)), diff_fn)
+    pt = CartesianIndex(ntuple(i->kernel_dim[i]÷2, N))
+    neighbourhood_gen(t) = c->CartesianRange(c-t,c+t)
+    seeded_region_growing(img, seeds, neighbourhood_gen(pt), diff_fn)
 end
 
 function seeded_region_growing{CT<:Colorant, N}(img::AbstractArray{CT,N}, seeds::AbstractVector{Tuple{CartesianIndex{N},Int}},
@@ -244,14 +246,15 @@ julia> seg.image_indexmap
 
 """
 function unseeded_region_growing{CT<:Colorant, N}(img::AbstractArray{CT,N}, threshold::Real,
-    kernel_dim::Union{Vector{Int}, NTuple{N, Int}} = [3 for i in 1:N], diff_fn::Function = default_diff_fn)
+    kernel_dim::Union{Vector{Int}, NTuple{N, Int}} = ntuple(i->3,N), diff_fn::Function = default_diff_fn)
     length(kernel_dim) == N || error("Dimension count of image and kernel_dim do not match")
     for dim in kernel_dim
         dim > 0 || error("Dimensions of the kernel must be positive")
         isodd(dim) || error("Dimensions of the kernel must be odd")
     end
-    pt = CartesianIndex([dim ÷ 2 for dim in kernel_dim]...)
-    unseeded_region_growing(img, threshold, ((c)->CartesianRange(c-pt,c+pt)), diff_fn)
+    pt = CartesianIndex(ntuple(i->kernel_dim[i]÷2, N))
+    neighbourhood_gen(t) = c->CartesianRange(c-t,c+t)
+    unseeded_region_growing(img, threshold, neighbourhood_gen(pt), diff_fn)
 end
 
 function unseeded_region_growing{CT<:Colorant,N}(img::AbstractArray{CT,N}, threshold::Real, neighbourhood::Function, diff_fn = default_diff_fn)
