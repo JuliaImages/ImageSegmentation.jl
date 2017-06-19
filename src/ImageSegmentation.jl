@@ -10,7 +10,8 @@ include("region_growing.jl")
 export
     # methods
     seeded_region_growing,
-
+    unseeded_region_growing,
+    
     # types
     SegmentedImage
 

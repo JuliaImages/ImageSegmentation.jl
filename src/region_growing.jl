@@ -35,7 +35,7 @@ julia> img = zeros(Gray{N0f8},4,4);
 julia> img[2:4,2:4] = 1;
 julia> seeds = [(CartesianIndex(3,1),1),(CartesianIndex(2,2),2)];
 julia> seg = seeded_region_growing(img, seeds);
-julia> seg.img
+julia> seg.image_indexmap
 4×4 Array{Int64,2}:
  1  1  1  1
  1  2  2  2
@@ -49,15 +49,17 @@ julia> seg.img
 Albert Mehnert, Paul Jackaway (1997), "An improved seeded region growing algorithm",
 Pattern Recognition Letters 18 (1997), 1065-1071
 """
+
 function seeded_region_growing{CT<:Colorant, N}(img::AbstractArray{CT,N}, seeds::AbstractVector{Tuple{CartesianIndex{N},Int}},
-    kernel_dim::Union{Vector{Int}, NTuple{N, Int}} = [3 for i in 1:N], diff_fn::Function = default_diff_fn)
+    kernel_dim::Union{Vector{Int}, NTuple{N, Int}} = ntuple(i->3,N), diff_fn::Function = default_diff_fn)
     length(kernel_dim) == N || error("Dimension count of image and kernel_dim do not match")
     for dim in kernel_dim
         dim > 0 || error("Dimensions of the kernel must be positive")
         isodd(dim) || error("Dimensions of the kernel must be odd")
     end
-    pt = CartesianIndex([dim ÷ 2 for dim in kernel_dim]...)
-    seeded_region_growing(img, seeds, ((c)->CartesianRange(c-pt,c+pt)), diff_fn)
+    pt = CartesianIndex(ntuple(i->kernel_dim[i]÷2, N))
+    neighbourhood_gen(t) = c->CartesianRange(c-t,c+t)
+    seeded_region_growing(img, seeds, neighbourhood_gen(pt), diff_fn)
 end
 
 function seeded_region_growing{CT<:Colorant, N}(img::AbstractArray{CT,N}, seeds::AbstractVector{Tuple{CartesianIndex{N},Int}},
@@ -84,8 +86,8 @@ function seeded_region_growing{CT<:Colorant, N}(img::AbstractArray{CT,N}, seeds:
     # Labelling initial seeds and initialising `region_means` and `region_pix_count`
     for seed in seeds
         result[seed[1]] = seed[2]
-        region_pix_count[seed[2]] = get!(region_pix_count, seed[2], 0) + 1
-        region_means[seed[2]] = get!(region_means, seed[2], zero(Images.accum(CT))) + (img[seed[1]] - get!(region_means, seed[2], zero(Images.accum(CT))))/(region_pix_count[seed[2]])
+        region_pix_count[seed[2]] = get(region_pix_count, seed[2], 0) + 1
+        region_means[seed[2]] = get(region_means, seed[2], zero(Images.accum(CT))) + (img[seed[1]] - get(region_means, seed[2], zero(Images.accum(CT))))/(region_pix_count[seed[2]])
         if ! (seed[2] in labels)
             push!(labels, seed[2])
         end
@@ -203,6 +205,141 @@ function seeded_region_growing{CT<:Colorant, N}(img::AbstractArray{CT,N}, seeds:
     if c0 != 0
         push!(labels, 0)
         region_pix_count[0] = c0
+    end
+    SegmentedImage(result, labels, region_means, region_pix_count)
+end
+
+
+"""
+    seg_img = unseeded_region_growing(img, threshold, [kernel_dim], [diff_fn])
+    seg_img = unseeded_region_growing(img, threshold, [neighbourhood], [diff_fn])
+
+Segments the N-D image using automatic (unseeded) region growing algorithm
+and returns a [`SegmentedImage`](@ref) containing information about the segments.
+
+# Arguments:
+* `img`             :  N-D image to be segmented (arbitrary indices are allowed)
+* `threshold`       :  Upper bound of the difference measure (δ) for considering
+                       pixel into same segment
+* `kernel_dim`      :  (Optional) `Vector{Int}` having length N or a `NTuple{N,Int}`
+                       whose ith element is an odd positive integer representing
+                       the length of the ith edge of the N-orthotopic neighbourhood
+* `neighbourhood`   :  (Optional) Function taking CartesianIndex{N} as input and
+                       returning the neighbourhood of that point.
+* `diff_fn`         :  (Optional) Function that returns a difference measure (δ)
+                       between the mean color of a region and color of a point
+
+# Examples
+
+```jldoctest
+julia> img = zeros(Gray{N0f8},4,4);
+julia> img[2:4,2:4] = 1;
+julia> seg = unseeded_region_growing(img, 0.2);
+julia> seg.image_indexmap
+4×4 Array{Int64,2}:
+ 1  1  1  1
+ 1  2  2  2
+ 1  2  2  2
+ 1  2  2  2
+
+```
+
+"""
+function unseeded_region_growing{CT<:Colorant, N}(img::AbstractArray{CT,N}, threshold::Real,
+    kernel_dim::Union{Vector{Int}, NTuple{N, Int}} = ntuple(i->3,N), diff_fn::Function = default_diff_fn)
+    length(kernel_dim) == N || error("Dimension count of image and kernel_dim do not match")
+    for dim in kernel_dim
+        dim > 0 || error("Dimensions of the kernel must be positive")
+        isodd(dim) || error("Dimensions of the kernel must be odd")
+    end
+    pt = CartesianIndex(ntuple(i->kernel_dim[i]÷2, N))
+    neighbourhood_gen(t) = c->CartesianRange(c-t,c+t)
+    unseeded_region_growing(img, threshold, neighbourhood_gen(pt), diff_fn)
+end
+
+function unseeded_region_growing{CT<:Colorant,N}(img::AbstractArray{CT,N}, threshold::Real, neighbourhood::Function, diff_fn = default_diff_fn)
+   
+    # Required data structures 
+    result                  =   similar(dims->fill(-1,dims), indices(img))      # Array to store labels
+    neighbours              =   PriorityQueue(CartesianIndex{N}, Float64)       # Priority Queue containing boundary pixels with δ as the priority
+    region_means            =   Dict{Int, Images.accum(CT)}()                   # A map containing (label, mean) pairs
+    region_pix_count        =   Dict{Int, Int}()                                # A map containing (label, pixel_count) pairs
+    labels                  =   Vector{Int}()                                   # Vector containing assigned labels
+
+    # Initialize data structures
+    start_point = first(CartesianRange(indices(img)))
+    result[start_point] = 1
+    push!(labels, 1)
+    region_means[1] = img[start_point]
+    region_pix_count[1] = 1
+
+    # Enqueue neighouring points of `start_point`
+    for p in neighbourhood(start_point)
+        if p != start_point && checkbounds(Bool, img, p) && result[p] == -1
+            enqueue!(neighbours, p, diff_fn(region_means[result[start_point]], img[p]))
+        end
+    end
+    
+    while !isempty(neighbours)
+        point = dequeue!(neighbours)
+        δ = Inf
+        minlabel = -1
+        pixelval = img[point]
+        for p in neighbourhood(point)
+            if p != point && checkbounds(Bool, img, p) && result[p] > 0
+                curδ = diff_fn(region_means[result[p]], pixelval)
+                if curδ < δ
+                    δ = curδ
+                    minlabel = result[p]
+                end
+            end
+        end
+
+        if δ < threshold
+            # Assign point to minlabel
+            result[point] = minlabel
+        else
+            # Select most appropriate label
+            δ = Inf
+            minlabel = -1
+            for label in labels
+                curδ = diff_fn(region_means[label], pixelval)
+                if curδ < δ
+                    δ = curδ
+                    minlabel = label
+                end
+            end
+
+            if δ < threshold
+                result[point] = minlabel
+            else
+                # Assign point to a new label
+                minlabel = length(labels) + 1
+                push!(labels, minlabel)
+                result[point] = minlabel
+            end
+        end
+
+        #Update region_means
+        region_pix_count[minlabel] = get(region_pix_count, minlabel, 0) + 1
+        region_means[minlabel] = get(region_means, minlabel, zero(Images.accum(CT))) + (pixelval - get(region_means, minlabel, zero(Images.accum(CT))))/(region_pix_count[minlabel])
+
+        # Enqueue neighbours of `point`
+        for p in neighbourhood(point)
+            if checkbounds(Bool, img, p) && result[p] == -1
+                if haskey(neighbours, p)
+                    continue
+                end
+                δ = Inf
+                for tp in neighbourhood(p)
+                    if checkbounds(Bool, img, tp) && tp != p && result[tp] > 0
+                        δ = min(δ, diff_fn(region_means[result[tp]], img[p]))
+                    end
+                end
+                enqueue!(neighbours, p, δ)
+            end
+        end
+
     end
     SegmentedImage(result, labels, region_means, region_pix_count)
 end
