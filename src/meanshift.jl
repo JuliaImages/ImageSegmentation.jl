@@ -1,6 +1,6 @@
 using Images, NearestNeighbors, Distances, StaticArrays, Clustering
 
-function meanshift{T<:Gray}(img::AbstractArray{T, 2}, spatial_radius::Float64, range_radius::Float64, min_density::Int)
+function meanshift(img::Array{Float64, 2}, spatial_radius::Float64, range_radius::Float64, min_density::Int)
 
     rows, cols = size(img)
     rowbins = Int(floor(rows/spatial_radius))
@@ -20,13 +20,13 @@ function meanshift{T<:Gray}(img::AbstractArray{T, 2}, spatial_radius::Float64, r
         push!( buckets[rowbin(i[1]), colbin(i[2]), colorbin(img[i])], i)
     end
 
-    function dist(a::MVector, b::MVector)::Float64
+    function dist(a::SVector, b::SVector)::Float64
         return sqrt(((a[1]-b[1])/spatial_radius)^2 + ((a[2]-b[2])/spatial_radius)^2 + ((a[3]-b[3])/range_radius)^2)
     end
 
-    function getnext(pt::MVector{3, Float64})::MVector{3, Float64}
+    function getnext(pt::SVector{3, Float64})::SVector{3, Float64}
         den = 0.0
-        num = MVector(0.0, 0.0, 0.0)
+        num = SVector(0.0, 0.0, 0.0)
 
         R = CartesianRange(size(buckets))
         I1, Iend = first(R), last(R)
@@ -34,8 +34,8 @@ function meanshift{T<:Gray}(img::AbstractArray{T, 2}, spatial_radius::Float64, r
 
         for J in CartesianRange(max(I1, I-I1), min(Iend, I+I1))
             for point in buckets[J]
-                if dist(pt, MVector(point[1], point[2], img[point])) <= 1
-                    num += MVector(point[1], point[2], img[point])
+                if dist(pt, SVector(point[1], point[2], img[point])) <= 1
+                    num += SVector(point[1], point[2], img[point])
                     den += 1
                 end
             end
@@ -45,11 +45,11 @@ function meanshift{T<:Gray}(img::AbstractArray{T, 2}, spatial_radius::Float64, r
     end
 
     iter = 50
-    eps = 0.005
+    eps = 0.01
     modes = Array{Float64}(3, rows*cols)
 
     for i in CartesianRange(size(img))
-        pt::MVector{3, Float64} = MVector(i[1], i[2], img[i])
+        pt::SVector{3, Float64} = SVector(i[1], i[2], img[i])
         for j in 1:iter
             nextpt = getnext(pt)
             if dist(pt, nextpt) < eps
