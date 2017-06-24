@@ -1,21 +1,20 @@
 function felzenszwalb{T<:Gray}(img::AbstractArray{T, 2}, k::Real; sigma=0.8)
 
-    img = imfilter(img, Kernel.gaussian(sigma))
+    #img = imfilter(img, Kernel.gaussian(sigma))
     rows, cols = size(img)
     num_vertices = rows*cols
-    num_edges = 2*rows*cols - rows - cols
+    num_edges = 4*rows*cols - 3*rows - 3*cols + 2
     edges = Array{SVector{3, Float64}}(num_edges)
-    num = 1
-    for j in indices(img, 2)
-        for i in indices(img, 1)[1:end-1]
-            edges[num] = SVector((j-1)*rows+i, (j-1)*rows+i+1, abs(img[i, j]-img[i+1,j]))
-            num += 1
-        end
-    end
 
-    for j in indices(img, 2)[1:end-1]
-        for i in indices(img, 1)
-            edges[num] = SVector((j-1)*rows+i, j*rows+i, abs(img[i, j]-img[i,j+1]))
+    R = CartesianRange(size(img))
+    I1, Iend = first(R), last(R)
+    num = 1
+    for I in R
+        for J in CartesianRange(max(I1, I-I1), min(Iend, I+I1))
+            if I >= J
+                continue
+            end
+            edges[num] = SVector((I[2]-1)*rows+I[1], (J[2]-1)*rows+J[1], abs(img[I]-img[J]))
             num += 1
         end
     end
