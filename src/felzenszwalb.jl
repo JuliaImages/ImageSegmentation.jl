@@ -1,46 +1,3 @@
-function felzenszwalb{T<:Gray}(img::AbstractArray{T, 2}, k::Real; sigma=0.8)
-
-    #img = imfilter(img, Kernel.gaussian(sigma))
-    rows, cols = size(img)
-    num_vertices = rows*cols
-    num_edges = 4*rows*cols - 3*rows - 3*cols + 2
-    edges = Array{SVector{3, Float64}}(num_edges)
-
-    R = CartesianRange(size(img))
-    I1, Iend = first(R), last(R)
-    num = 1
-    for I in R
-        for J in CartesianRange(max(I1, I-I1), min(Iend, I+I1))
-            if I >= J
-                continue
-            end
-            edges[num] = SVector((I[2]-1)*rows+I[1], (J[2]-1)*rows+J[1], abs(img[I]-img[J]))
-            num += 1
-        end
-    end
-
-    index_map, num_segments = felzenszwalb_graph(edges, num_vertices, k)
-    result = similar(img, Int64)
-    labels = Array(1:num_segments)
-    region_means = Dict{Int, T}()
-    region_pix_count = Dict{Int, Int}()
-
-    for j in indices(img, 2)
-        for i in indices(img, 1)
-            result[i, j] = index_map[(j-1)*rows+i]
-        end
-    end
-
-    for i in range(1, num_segments)
-        region = find(x->x==i, result)
-        region_pix_count[i] = length(region)
-        region_means[i] = mean(img[region])
-    end
-
-    return SegmentedImage(result, labels, region_means, region_pix_count) 
-
-end
-
 """
 ```
 index_map, num_segments = felzenszwalb_graph(edges, num_vertices, k)
@@ -55,8 +12,8 @@ function felzenszwalb_graph(edges::Array{SVector{3, Float64}}, num_vertices::Int
     rank = zeros(num_sets)
     set_size = ones(num_sets)
     parent = Array(range(1, num_sets))
-    threshold = ones(num_vertices)
-
+    threshold = fill(k, num_vertices)
+    
     function find_root(x)
         x = Int(x)
         if parent[x]!=x
@@ -100,20 +57,128 @@ function felzenszwalb_graph(edges::Array{SVector{3, Float64}}, num_vertices::Int
         end
     end
 
-    segment_roots = OrderedSet()
+    segments = OrderedSet()
     for i in 1:num_vertices
-        push!(segment_roots, find_root(i))
+        push!(segments, find_root(i))
     end
 
-    tree2region = Dict{Int, Int}()
+    segments2index = Dict{Int, Int}()
     for i in 1:num_sets
-        tree2region[segment_roots[i]]=i 
+        segments2index[segments[i]]=i 
     end
 
     index_map = Array{Int64}(num_vertices)
     for i in 1:num_vertices
-        index_map[i] = tree2region[find_root(i)]
+        index_map[i] = segments2index[find_root(i)]
     end
 
     return index_map, num_sets
+end
+
+function felzenszwalb{T<:Gray}(img::AbstractArray{T, 2}, k::Real; sigma=0.8)
+
+    #img = imfilter(img, Kernel.gaussian(sigma))
+    rows, cols = size(img)
+    num_vertices = rows*cols
+    num_edges = 4*rows*cols - 3*rows - 3*cols + 2
+    edges = Array{SVector{3, Float64}}(num_edges)
+
+    R = CartesianRange(size(img))
+    I1, Iend = first(R), last(R)
+    num = 1
+    for I in R
+        for J in CartesianRange(max(I1, I-I1), min(Iend, I+I1))
+            if I >= J
+                continue
+            end
+            edges[num] = SVector((I[2]-1)*rows+I[1], (J[2]-1)*rows+J[1], abs(img[I]-img[J]))
+            num += 1
+        end
+    end
+
+    index_map, num_segments = felzenszwalb_graph(edges, num_vertices, k)
+    result = similar(img, Int64)
+    labels = Array(1:num_segments)
+    region_means = Dict{Int, T}()
+    region_pix_count = Dict{Int, Int}()
+
+    for j in indices(img, 2)
+        for i in indices(img, 1)
+            result[i, j] = index_map[(j-1)*rows+i]
+        end
+    end
+
+    for i in range(1, num_segments)
+        region = find(x->x==i, result)
+        region_pix_count[i] = length(region)
+        region_means[i] = mean(img[region])
+    end
+
+    return SegmentedImage(result, labels, region_means, region_pix_count) 
+
+end
+
+function felzenszwalb{T<:Color}(img::AbstractArray{T, 2}, k::Real; sigma=0.8)
+
+    rows, cols = size(img)
+    num_vertices = rows*cols
+    num_edges = 4*rows*cols - 3*rows - 3*cols + 2
+    edges = Array{SVector{3, Float64}}(num_edges)
+    channel_index_map = Array{Int}(num_vertices, 3)
+    channel_num_segments = Array{Int}(3)
+
+    for i in range(1,3)
+        channel = view(channelview(img), i, :, :)
+        channel = imfilter(channel, Kernel.gaussian(sigma))
+        R = CartesianRange(size(img))
+        I1, Iend = first(R), last(R)
+        num = 1
+        for I in R
+            for J in CartesianRange(max(I1, I-I1), min(Iend, I+I1))
+                if I >= J
+                    continue
+                end
+                edges[num] = SVector((I[2]-1)*rows+I[1], (J[2]-1)*rows+J[1], abs(channel[I]-channel[J]))
+                num += 1
+            end
+        end
+        channel_index_map[:,i], channel_num_segments[i] = felzenszwalb_graph(edges, num_vertices, k)
+    end
+
+    segments = OrderedSet{SVector{3,Int}}()
+    for i in 1:num_vertices
+        push!(segments, SVector(channel_index_map[i,:]...))
+    end
+
+    num_segments = length(segments)
+
+    segments2index = Dict{SVector{3, Int}, Int}()
+    for i in 1:num_segments
+        segments2index[segments[i]]=i 
+    end
+
+    index_map = Array{Int64}(num_vertices)
+    for i in 1:num_vertices
+        index_map[i] = segments2index[SVector(channel_index_map[i,:]...)]
+    end
+
+    result = Array{Int}(rows, cols)
+    labels = Array(1:num_segments)
+    region_means = Dict{Int, T}()
+    region_pix_count = Dict{Int, Int}()
+
+    for j in indices(img, 2)
+        for i in indices(img, 1)
+            result[i, j] = index_map[(j-1)*rows+i]
+        end
+    end
+
+    for i in range(1, num_segments)
+        region = find(x->x==i, result)
+        region_pix_count[i] = length(region)
+        region_means[i] = mean(img[region])
+    end
+
+    return SegmentedImage(result, labels, region_means, region_pix_count) 
+
 end
