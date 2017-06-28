@@ -127,7 +127,6 @@ function felzenszwalb{T<:Color}(img::AbstractArray{T, 2}, k::Real; sigma=0.8)
 
     for i in range(1,3)
         channel = view(channelview(img), i, :, :)
-        channel = imfilter(channel, Kernel.gaussian(sigma))
         R = CartesianRange(size(img))
         I1, Iend = first(R), last(R)
         num = 1
