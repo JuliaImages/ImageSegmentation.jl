@@ -81,7 +81,20 @@ function felzenszwalb_graph(edges::Array{ImageEdge}, num_vertices::Int, k::Real)
     return index_map, num_sets
 end
 
-function felzenszwalb{T<:Images.NumberLike}(img::AbstractArray{T, 2}, k::Real; sigma=0.8)
+"""
+```
+segments = felzenszwalb(img, k)
+```
+
+Segments an image using Felzenszwalb's segmentation algorithm and returns the result as `SegmentedImage`.    
+Use felzenszwalb_graph if you want to run felzenszwalb's algorithm on a custom Region Adjacency Graph.
+    
+Parameters:  
+-    img            = input image
+-    k              = Threshold for region splitting step. Larger threshold will result in bigger segments.
+
+"""
+function felzenszwalb{T<:Images.NumberLike}(img::AbstractArray{T, 2}, k::Real)
 
     rows, cols = size(img)
     num_vertices = rows*cols
@@ -123,7 +136,7 @@ function felzenszwalb{T<:Images.NumberLike}(img::AbstractArray{T, 2}, k::Real; s
 
 end
 
-function felzenszwalb{T<:Color}(img::AbstractArray{T, 2}, k::Real; sigma=0.8)
+function felzenszwalb{T<:Color}(img::AbstractArray{T, 2}, k::Real)
 
     rows, cols = size(img)
     num_vertices = rows*cols
