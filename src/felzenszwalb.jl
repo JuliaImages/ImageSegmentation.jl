@@ -3,7 +3,14 @@
 index_map, num_segments = felzenszwalb_graph(edges, num_vertices, k)
 ```
 
-Efficient Graph-Based Image Segmentation.
+Segments an image represented as Region Adjacency Graph(RAG) using Felzenszwalb's segmentation algorithm.   
+The function returns the number of segments and index mapping from nodes of the RAG to segments.    
+    
+Parameters:  
+-    edges          = Array of edges in RAG. Each edge is represented as `ImageEdge`.
+-    num_vertices   = Number of vertices in RAG
+-    k              = Threshold for region splitting step. Larger threshold will result in bigger segments.
+
 """
 function felzenszwalb_graph(edges::Array{ImageEdge}, num_vertices::Int, k::Real)
 
