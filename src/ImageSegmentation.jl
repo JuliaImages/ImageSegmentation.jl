@@ -17,5 +17,6 @@ export
     
     # types
     SegmentedImage
+    ImageEdge
 
 end # module

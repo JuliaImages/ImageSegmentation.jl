@@ -5,13 +5,13 @@ index_map, num_segments = felzenszwalb_graph(edges, num_vertices, k)
 
 Efficient Graph-Based Image Segmentation.
 """
-function felzenszwalb_graph(edges::Array{SVector{3, Float64}}, num_vertices::Int, k::Real)
+function felzenszwalb_graph(edges::Array{ImageEdge}, num_vertices::Int, k::Real)
 
     num_edges = length(edges)
     num_sets = num_vertices
     rank = zeros(num_sets)
     set_size = ones(num_sets)
-    parent = Array(range(1, num_sets))
+    parent = collect(1:num_sets)
     threshold = fill(k, num_vertices)
     
     function find_root(x)
@@ -42,13 +42,12 @@ function felzenszwalb_graph(edges::Array{SVector{3, Float64}}, num_vertices::Int
         end
     end
 
-    sort(edges, lt = (x,y)->(x[3]<y[3]))
+    sort!(edges, lt = (x,y)->(x.weight<y.weight))
 
-    for i in range(1,num_edges)
-        edge = edges[i]
-        a, b, w = edge
-        a = find_root(a)
-        b = find_root(b)
+    for (i, edge) in enumerate(edges)
+        w = edge.weight
+        a = find_root(edge.index1)
+        b = find_root(edge.index2)
         if a!=b
             if w <= min(threshold[a], threshold[b])
                 merged_root = merge_trees(a, b)
@@ -75,13 +74,12 @@ function felzenszwalb_graph(edges::Array{SVector{3, Float64}}, num_vertices::Int
     return index_map, num_sets
 end
 
-function felzenszwalb{T<:Gray}(img::AbstractArray{T, 2}, k::Real; sigma=0.8)
+function felzenszwalb{T<:Images.NumberLike}(img::AbstractArray{T, 2}, k::Real; sigma=0.8)
 
-    #img = imfilter(img, Kernel.gaussian(sigma))
     rows, cols = size(img)
     num_vertices = rows*cols
     num_edges = 4*rows*cols - 3*rows - 3*cols + 2
-    edges = Array{SVector{3, Float64}}(num_edges)
+    edges = Array{ImageEdge}(num_edges)
 
     R = CartesianRange(size(img))
     I1, Iend = first(R), last(R)
@@ -91,7 +89,7 @@ function felzenszwalb{T<:Gray}(img::AbstractArray{T, 2}, k::Real; sigma=0.8)
             if I >= J
                 continue
             end
-            edges[num] = SVector((I[2]-1)*rows+I[1], (J[2]-1)*rows+J[1], abs(img[I]-img[J]))
+            edges[num] = ImageEdge((I[2]-1)*rows+I[1], (J[2]-1)*rows+J[1], abs(img[I]-img[J]))
             num += 1
         end
     end
@@ -123,7 +121,7 @@ function felzenszwalb{T<:Color}(img::AbstractArray{T, 2}, k::Real; sigma=0.8)
     rows, cols = size(img)
     num_vertices = rows*cols
     num_edges = 4*rows*cols - 3*rows - 3*cols + 2
-    edges = Array{SVector{3, Float64}}(num_edges)
+    edges = Array{ImageEdge}(num_edges)
     channel_index_map = Array{Int}(num_vertices, 3)
     channel_num_segments = Array{Int}(3)
 
@@ -138,7 +136,7 @@ function felzenszwalb{T<:Color}(img::AbstractArray{T, 2}, k::Real; sigma=0.8)
                 if I >= J
                     continue
                 end
-                edges[num] = SVector((I[2]-1)*rows+I[1], (J[2]-1)*rows+J[1], abs(channel[I]-channel[J]))
+                edges[num] = ImageEdge((I[2]-1)*rows+I[1], (J[2]-1)*rows+J[1], abs(channel[I]-channel[J]))
                 num += 1
             end
         end

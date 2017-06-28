@@ -8,3 +8,9 @@ immutable SegmentedImage{T<:AbstractArray,U<:Colorant}
     segment_means::Dict{Int,U}
     segment_pixel_count::Dict{Int,Int}
 end
+
+struct ImageEdge
+    index1::Int
+    index2::Int
+    weight::Float64
+end
