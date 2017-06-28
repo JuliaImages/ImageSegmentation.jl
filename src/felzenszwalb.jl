@@ -89,7 +89,7 @@ function felzenszwalb{T<:Images.NumberLike}(img::AbstractArray{T, 2}, k::Real; s
             if I >= J
                 continue
             end
-            edges[num] = ImageEdge((I[2]-1)*rows+I[1], (J[2]-1)*rows+J[1], abs(img[I]-img[J]))
+            edges[num] = ImageEdge((I[2]-1)*rows+I[1], (J[2]-1)*rows+J[1], abs(img[I]-Images.accum(T)(img[J])))
             num += 1
         end
     end
