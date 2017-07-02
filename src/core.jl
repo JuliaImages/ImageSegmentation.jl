@@ -14,7 +14,7 @@ end
 
 Construct an edge in a Region Adjacency Graph. `index1` and `index2` are the integers corresponding to individual pixels/voxels (in the sense of linear indexing via `sub2ind`), and `weight` is the edge weight (measures the dissimilarity between pixels/voxels).
 """
-struct ImageEdge
+immutable ImageEdge
     index1::Int
     index2::Int
     weight::Float64
