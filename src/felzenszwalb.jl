@@ -18,7 +18,7 @@ function felzenszwalb_graph(edges::Array{ImageEdge}, num_vertices::Int, k::Real,
     num_edges = length(edges)
     G = IntDisjointSets(num_vertices)
     set_size = ones(num_vertices)
-    threshold = fill(k, num_vertices)
+    threshold = fill(convert(Float64,k), num_vertices)
 
     sort!(edges, lt = (x,y)->(x.weight<y.weight))
 
