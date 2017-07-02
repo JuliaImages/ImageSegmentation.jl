@@ -16,7 +16,7 @@ export
     felzenszwalb,
     
     # types
-    SegmentedImage
+    SegmentedImage,
     ImageEdge
 
 end # module

@@ -9,6 +9,9 @@ immutable SegmentedImage{T<:AbstractArray,U<:Colorant}
     segment_pixel_count::Dict{Int,Int}
 end
 
+"""
+`ImageEdge` is used for representing edges in Region Adjacency Graphs.
+"""
 struct ImageEdge
     index1::Int
     index2::Int
