@@ -12,7 +12,6 @@ export
     # methods
     seeded_region_growing,
     unseeded_region_growing,
-    felzenszwalb_graph,
     felzenszwalb,
     
     # types
