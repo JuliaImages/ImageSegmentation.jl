@@ -68,7 +68,8 @@ end
 segments = felzenszwalb(img, k)
 ```
 
-Segments an image using Felzenszwalb's segmentation algorithm and returns the result as `SegmentedImage`.    
+Segments an image using Felzenszwalb's segmentation algorithm and returns the result as `SegmentedImage`. The algorithm uses
+euclidean distance in color space as edge weights.  
 Use `felzenszwalb_graph` to run felzenszwalb's algorithm on a custom Region Adjacency Graph.
     
 Parameters:  
@@ -77,7 +78,7 @@ Parameters:
 -    min_size       = Minimum segment size
 
 """
-function felzenszwalb{T<:Color}(img::AbstractArray{T, 2}, k::Real, min_size::Int = 0)
+function felzenszwalb{T<:Union{Real,Color}}(img::AbstractArray{T, 2}, k::Real, min_size::Int = 0)
 
     rows, cols = size(img)
     num_vertices = rows*cols
