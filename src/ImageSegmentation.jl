@@ -27,7 +27,6 @@ export
     unseeded_region_growing,
     felzenszwalb,
     fast_scanning,
-    Nfast_scanning,
 
     # types
     SegmentedImage,
