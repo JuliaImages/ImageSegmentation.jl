@@ -1,5 +1,32 @@
-# for N-D images
-function fast_scanning{CT<:Colorant,N}(img::AbstractArray{CT,N}, threshold::Real, diff_fn::Function = default_diff_fn)
+"""
+    seg_img = fast_scanning(img, threshold, [diff_fn])
+
+Segments the N-D image using a fast scanning algorithm and returns a
+[`SegmentedImage`](@ref) containing information about the segments.
+
+# Arguments:
+* `img`         : N-D image to be segmented (arbitrary indices are allowed)
+* `threshold`   : Upper bound of the difference measure (δ) for considering
+                  pixel into same segment
+* `diff_fn`     : (Optional) Function that returns a difference measure (δ)
+                  between the mean color of a region and color of a point
+
+# Examples:
+
+```jldoctest
+julia> img = zeros(Float64, (3,3));
+julia> img[2,:] = 0.5;
+julia> img[:,2] = 0.6;
+julia> seg = fast_scanning(img, 0.2);
+julia> seg.image_indexmap
+3×3 Array{Int64,2}:
+ 1  4  5
+ 4  4  4
+ 3  4  6
+
+```
+"""
+function fast_scanning{CT<:Union{Colorant,Real},N}(img::AbstractArray{CT,N}, threshold::Real, diff_fn::Function = default_diff_fn)
 
     # Neighbourhood function
     _diagmN = diagm([1 for i in 1:N])
@@ -43,7 +70,6 @@ function fast_scanning{CT<:Colorant,N}(img::AbstractArray{CT,N}, threshold::Real
 
         # If all labels are same
         elseif same_label
-
             result[point] = prev_label
             region_pix_count[prev_label] += 1
             region_means[prev_label] += (img[point] - region_means[prev_label])/(region_pix_count[prev_label])
