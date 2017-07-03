@@ -79,13 +79,12 @@ function fast_scanning{CT<:Union{Colorant,Real},N}(img::AbstractArray{CT,N}, thr
             for i in 1:sz
                 union_label = union!(temp_labels, union_label, v_neigh[i])
             end
-
             result[point] = union_label
             region_pix_count[union_label] += 1
             region_means[union_label] += (img[point] - region_means[union_label])/(region_pix_count[union_label])
 
             for i in 1:sz
-                if v_neigh[i] != union_label
+                if v_neigh[i] != union_label && haskey(region_pix_count, v_neigh[i])
                     region_pix_count[union_label] += region_pix_count[v_neigh[i]]
                     region_means[union_label] += (region_means[v_neigh[i]] - region_means[union_label])*region_pix_count[v_neigh[i]]/region_pix_count[union_label]
 
