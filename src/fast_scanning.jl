@@ -1,3 +1,25 @@
+sharpness{CT<:Images.NumberLike,N}(img::AbstractArray{CT,N}) = var(imfilter(img, Kernel.Laplacian(ntuple(i->true, Val{N}))))
+
+function adaptive_thres{CT<:Images.NumberLike,N}(img::AbstractArray{CT,N}, block::NTuple{N,Int})
+    threshold = zeros(Float64, block)
+    block_length = CartesianIndex(ntuple(i->ceil(Int,length(indices(img,i))/block[i]),Val{N}))
+    net_s = sharpness(img)
+    net_var = var(img)
+    net_end = last(CartesianRange(indices(img)))
+    for i in CartesianRange(block)
+        si = CartesianIndex(ntuple(j->(i[j]-1)*block_length[j]+1,Val{N}))
+        ei = min(si + block_length - 1, net_end)
+        wi = view(img, map((i,j)->i:j, si.I, ei.I)...)
+        threshold[i] = 0.02 + min(sharpness(wi)/net_s*0.04,0.1) + min(var(wi)/net_var*0.04,0.1)
+    end
+    threshold
+end
+
+getscalar{T<:Real,N}(A::AbstractArray{T,N}, i::CartesianIndex{N}, block_length::CartesianIndex{N}) =
+    A[CartesianIndex(ntuple(j->(i[j]-1)÷block_length[j]+1, Val{N}))]
+
+getscalar(a::Real, i...) = a
+
 """
     seg_img = fast_scanning(img, threshold, [diff_fn])
 
@@ -7,7 +29,9 @@ Segments the N-D image using a fast scanning algorithm and returns a
 # Arguments:
 * `img`         : N-D image to be segmented (arbitrary indices are allowed)
 * `threshold`   : Upper bound of the difference measure (δ) for considering
-                  pixel into same segment
+                  pixel into same segment; an `AbstractArray` can be passed
+                  having same number of dimensions as that of `img` for adaptive
+                  thresholding
 * `diff_fn`     : (Optional) Function that returns a difference measure (δ)
                   between the mean color of a region and color of a point
 
@@ -26,7 +50,13 @@ julia> seg.image_indexmap
 
 ```
 """
-function fast_scanning{CT<:Union{Colorant,Real},N}(img::AbstractArray{CT,N}, threshold::Real, diff_fn::Function = default_diff_fn)
+fast_scanning{CT<:Images.NumberLike,N}(img::AbstractArray{CT,N}, block::NTuple{N,Int} = ntuple(i->4,Val{N})) = fast_scanning(img, adaptive_thres(img, block))
+
+function fast_scanning{CT<:Union{Colorant,Real},N}(img::AbstractArray{CT,N}, threshold::Union{AbstractArray,Real}, diff_fn::Function = default_diff_fn)
+
+    if typeof(threshold) <: AbstractArray
+        ndims(img) == ndims(threshold) || error("Dimension count of image and threshold do not match")
+    end
 
     # Neighbourhood function
     _diagmN = diagm([1 for i in 1:N])
@@ -41,6 +71,8 @@ function fast_scanning{CT<:Union{Colorant,Real},N}(img::AbstractArray{CT,N}, thr
     temp_labels         =   IntDisjointSets(0)                              # Disjoint set to map labels to their equivalence class
     v_neigh             =   MVector{N,Int}()                                # MVector to store valid neighbours
 
+    block_length = CartesianIndex(ntuple(i->ceil(Int,length(indices(img,i))/size(threshold,i)),Val{N}))
+
     for point in CartesianRange(indices(img))
         sz = 0
         same_label = true
@@ -48,7 +80,7 @@ function fast_scanning{CT<:Union{Colorant,Real},N}(img::AbstractArray{CT,N}, thr
         for p in neighbourhood(point)
             if checkbounds(Bool, img, p)
                 root_p = find_root(temp_labels, result[p])
-                if diff_fn(region_means[root_p], img[point]) < threshold
+                            if diff_fn(region_means[root_p], img[point]) < getscalar(threshold, point, block_length)
                     if prev_label == 0
                         prev_label = root_p
                     elseif prev_label != root_p

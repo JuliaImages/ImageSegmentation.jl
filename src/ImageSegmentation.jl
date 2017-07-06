@@ -2,7 +2,7 @@ __precompile__()
 
 module ImageSegmentation
 
-using Images, DataStructures, StaticArrays
+using Images, DataStructures, StaticArrays, ImageFiltering
 
 # For efficient hashing of CartesianIndex
 if !isdefined(Base.IteratorsMD, :cartindexhash_seed)

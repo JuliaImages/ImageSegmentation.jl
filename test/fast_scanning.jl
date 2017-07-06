@@ -83,4 +83,24 @@
   @test all(label->(expected_means[label] ≈ seg.segment_means[label]), seg.segment_labels)
   @test seg.image_indexmap == expected
 
+  # Adaptive Thresholding
+  img = [ 0.0 0.1 0.7 0.9;
+          0.0 0.1 0.7 0.9;
+          0.2 0.3 0.7 0.9;
+          0.2 0.3 0.7 0.9; ]
+
+  seg = fast_scanning(img, [0.2 0.1; 0.1 0.3])
+  expected =  [ 1 1 4 4;
+                1 1 4 4;
+                2 2 4 4;
+                2 2 4 4; ]
+  expected_labels = [1,2,4];
+  expected_means = Dict(1=>0.05,2=>0.25,4=>0.8)
+  expected_count = Dict(1=>4,2=>4,4=>8)
+
+  @test all(label->(label in expected_labels), seg.segment_labels)
+  @test all(label->(label in seg.segment_labels), expected_labels)
+  @test expected_count == seg.segment_pixel_count
+  @test all(label->(expected_means[label] ≈ seg.segment_means[label]), seg.segment_labels)
+  @test seg.image_indexmap == expected
 end
