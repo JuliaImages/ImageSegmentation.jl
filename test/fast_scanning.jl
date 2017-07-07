@@ -103,4 +103,19 @@
   @test expected_count == seg.segment_pixel_count
   @test all(label->(expected_means[label] ≈ seg.segment_means[label]), seg.segment_labels)
   @test seg.image_indexmap == expected
+
+  seg = fast_scanning(img, (2,2))
+  expected =  [ 1 3 5 6;
+                1 3 5 6;
+                2 4 5 6;
+                2 4 5 6; ]
+  expected_labels = [1,2,3,4,5,6]
+  expected_means = Dict(1=>0.0,2=>0.2,3=>0.1,4=>0.3,5=>0.7,6=>0.9)
+  expected_count = Dict(1=>2,2=>2,3=>2,4=>2,5=>4,6=>4)
+
+  @test all(label->(label in expected_labels), seg.segment_labels)
+  @test all(label->(label in seg.segment_labels), expected_labels)
+  @test expected_count == seg.segment_pixel_count
+  @test all(label->(expected_means[label] ≈ seg.segment_means[label]), seg.segment_labels)
+  @test seg.image_indexmap == expected
 end
