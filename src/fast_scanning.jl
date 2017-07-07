@@ -20,6 +20,9 @@ getscalar{T<:Real,N}(A::AbstractArray{T,N}, i::CartesianIndex{N}, block_length::
 
 getscalar(a::Real, i...) = a
 
+fast_scanning{CT<:Images.NumberLike,N}(img::AbstractArray{CT,N}, block::NTuple{N,Int} =
+    ntuple(i->4,Val{N})) = fast_scanning(img, adaptive_thres(img, block))
+
 """
     seg_img = fast_scanning(img, threshold, [diff_fn])
 
@@ -47,14 +50,16 @@ julia> seg.image_indexmap
  1  4  5
  4  4  4
  3  4  6
-
 ```
-"""
-fast_scanning{CT<:Images.NumberLike,N}(img::AbstractArray{CT,N}, block::NTuple{N,Int} = ntuple(i->4,Val{N})) = fast_scanning(img, adaptive_thres(img, block))
 
+# Citation:
+
+Jian-Jiun Ding, Cheng-Jin Kuo, Wen-Chih Hong,
+"An efficient image segmentation technique by fast scanning and adaptive merging"
+"""
 function fast_scanning{CT<:Union{Colorant,Real},N}(img::AbstractArray{CT,N}, threshold::Union{AbstractArray,Real}, diff_fn::Function = default_diff_fn)
 
-    if typeof(threshold) <: AbstractArray
+    if threshold isa AbstractArray
         ndims(img) == ndims(threshold) || error("Dimension count of image and threshold do not match")
     end
 
