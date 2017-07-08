@@ -1,5 +1,5 @@
 
-default_diff_fn{CT1<:Colorant, CT2<:Colorant}(c1::CT1,c2::CT2) = sqrt(sum(abs2,(c1)-Images.accum(CT2)(c2)))
+default_diff_fn{CT1<:Union{Colorant,Real}, CT2<:Union{Colorant,Real}}(c1::CT1,c2::CT2) = sqrt(sum(abs2,(c1)-Images.accum(CT2)(c2)))
 
 """
     seg_img = seeded_region_growing(img, seeds, [kernel_dim], [diff_fn])
@@ -198,9 +198,9 @@ function seeded_region_growing{CT<:Colorant, N}(img::AbstractArray{CT,N}, seeds:
                 end
             end
         end
-    
+
     end
-    
+
     c0 = count(i->(i==0),result)
     if c0 != 0
         push!(labels, 0)
@@ -258,8 +258,8 @@ function unseeded_region_growing{CT<:Colorant, N}(img::AbstractArray{CT,N}, thre
 end
 
 function unseeded_region_growing{CT<:Colorant,N}(img::AbstractArray{CT,N}, threshold::Real, neighbourhood::Function, diff_fn = default_diff_fn)
-   
-    # Required data structures 
+
+    # Required data structures
     result                  =   similar(dims->fill(-1,dims), indices(img))      # Array to store labels
     neighbours              =   PriorityQueue(CartesianIndex{N}, Float64)       # Priority Queue containing boundary pixels with δ as the priority
     region_means            =   Dict{Int, Images.accum(CT)}()                   # A map containing (label, mean) pairs
@@ -279,7 +279,7 @@ function unseeded_region_growing{CT<:Colorant,N}(img::AbstractArray{CT,N}, thres
             enqueue!(neighbours, p, diff_fn(region_means[result[start_point]], img[p]))
         end
     end
-    
+
     while !isempty(neighbours)
         point = dequeue!(neighbours)
         δ = Inf

@@ -2,7 +2,7 @@
 `SegmentedImage` type contains the index-label mapping, assigned labels,
 segment mean intensity and pixel count of each segment.
 """
-immutable SegmentedImage{T<:AbstractArray,U<:Colorant}
+immutable SegmentedImage{T<:AbstractArray,U<:Union{Colorant,Real}}
     image_indexmap::T
     segment_labels::Vector{Int}
     segment_means::Dict{Int,U}
