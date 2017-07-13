@@ -3,12 +3,11 @@ using ImageFiltering
 @testset "watershed" begin
     
     img = zeros(100, 100)
-    img = zeros(Float64, (100,100))
     img[25:75, 25:75] = 1
 
     img, _ = magnitude_phase(img)
 
-    markers = zeros(img)
+    markers = zeros(Int, size(img))
     markers[1, 1] = 1
     markers[50, 50] = 2
 
