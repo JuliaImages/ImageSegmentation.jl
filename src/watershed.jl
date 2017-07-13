@@ -18,14 +18,14 @@ Parameters:
 -    markers        = an array marking the pixels where flooding should start
 
 """
-function watershed{T<:Images.NumberLike, S<:Integer}(img::AbstractArray{T, 2}, markers::AbstractArray{S,2})
+function watershed{T<:Images.NumberLike, S<:Integer, N}(img::AbstractArray{T, N}, markers::AbstractArray{S,N})
 
     if indices(img) != indices(markers)
         error("image size doesn't match marker image size")
     end
 
     segments = copy(markers)
-    pq = PriorityQueue(CartesianIndex{2}, PixelKey{T}, Base.Order.Forward)
+    pq = PriorityQueue(CartesianIndex{N}, PixelKey{T}, Base.Order.Forward)
     time_step = 0
 
     R = CartesianRange(indices(img))
@@ -60,16 +60,14 @@ function watershed{T<:Images.NumberLike, S<:Integer}(img::AbstractArray{T, 2}, m
     region_means        = Dict{Int, Images.accum(T)}()
     region_pix_count    = Dict{Int, Int}()
 
-    for j in indices(img, 2)
-        for i in indices(img, 1)
-            region_pix_count[segments[i,j]] = get(region_pix_count, segments[i, j], 0) + 1
-            region_means[segments[i,j]] = get(region_means, segments[i,j], zero(Images.accum(T))) + (img[i, j] - get(region_means, segments[i,j], zero(Images.accum(T))))/region_pix_count[segments[i,j]]
-        end
+    for i in R
+        region_pix_count[segments[i]] = get(region_pix_count, segments[i], 0) + 1
+        region_means[segments[i]] = get(region_means, segments[i], zero(Images.accum(T))) + (img[i] - get(region_means, segments[i], zero(Images.accum(T))))/region_pix_count[segments[i]]
     end
     return SegmentedImage(segments, labels, region_means, region_pix_count)
 end
 
-function watershed{T<:Images.NumberLike}(img::AbstractArray{T, 2})
+function watershed{T<:Images.NumberLike, N}(img::AbstractArray{T, N})
     markers = zeros(Int, size(img))
     i = 0
     for j in findlocalminima(img)
