@@ -42,7 +42,7 @@ function watershed{T<:Images.NumberLike, S<:Integer, N}(img::AbstractArray{T, N}
         end
     end
 
-    while !isempty(pq) > 0
+    while !isempty(pq)
         current = dequeue!(pq)
         segments_current = segments[current]
         img_current = img[current]
