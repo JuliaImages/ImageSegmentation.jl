@@ -2,7 +2,7 @@ __precompile__()
 
 module ImageSegmentation
 
-using Images, DataStructures, StaticArrays, ImageFiltering, LightGraphs
+using Images, DataStructures, StaticArrays, ImageFiltering, LightGraphs, SimpleWeightedGraphs
 
 # For efficient hashing of CartesianIndex
 if !isdefined(Base.IteratorsMD, :cartindexhash_seed)
@@ -31,10 +31,12 @@ export
     watershed,
     hmin_transform,
     region_adjacency_graph,
+    rem_segment,
+    rem_segment!,
+    prune_segments,
 
     # types
     SegmentedImage,
-    ImageEdge,
-    RegionAdjacencyGraph
+    ImageEdge
 
 end # module
