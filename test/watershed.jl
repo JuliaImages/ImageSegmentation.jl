@@ -17,5 +17,18 @@ using ImageFiltering
     @test result.segment_labels == collect(1:2)
     @test all(label->(label==result.image_indexmap[50,50]), result.image_indexmap[26:74,26:74])
 
-    # To do: Add more tests
+
+    img = ones(15, 15)
+    #minima of height 0.2
+    img[3:5, 3:5] = 0.9
+    img[4,4] = 0.8
+    #minima of height 0.7
+    img[9:13, 9:13] = 0.8
+    img[10:12, 10:12] = 0.7
+    img[11,11] = 0.3
+
+    out = hmin_transform(img, 0.25)
+
+    @test findlocalminima(img) == [CartesianIndex(4, 4), CartesianIndex(11, 11)]
+    @test findlocalminima(out) == [CartesianIndex(11, 11)] 
 end
