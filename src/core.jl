@@ -21,26 +21,29 @@ immutable ImageEdge
 end
 
 """
-    G, vert_map = region_adjacency_graph(seg, [weight_fn])
+    G, vert_map = region_adjacency_graph(seg, weight_fn)
 
 Constructs a region adjacency graph from the `SegmentedImage`. It returns the RAG
-along with a label->vertex map. Optionally, a weight function `weight_fn` might be
-provided to set the edge weights. `weight_fn` takes two segment means and returns
-the weight of the connecting edge.
+along with a label->vertex map. `weight_fn` is used to assign weights to edges.
+
+    weight_fn(label1, label2)
+
+Returns a Float64 corresponding to the weight of the edge between label1 and label2.
 
 """
-function region_adjacency_graph{T<:SegmentedImage}(s::T, weight_fn::Function = default_diff_fn)
+function region_adjacency_graph(s::SegmentedImage, weight_fn::Function)
 
-    function neighbor_regions!{T<:SegmentedImage}(s::T, I::CartesianIndex, visited::AbstractArray, n::Set{Int})
+    function neighbor_regions!(n::Set{Int}, visited::AbstractArray, s::SegmentedImage, I::CartesianIndex)
         R = CartesianRange(indices(s.image_indexmap))
-        I1, Iend = first(R), last(R)
+        I1 = one(CartesianIndex{ndims(visited)})
+        Ibegin, Iend = first(R), last(R)
         t = Vector{CartesianIndex{ndims(visited)}}()
         push!(t, I)
 
         while !isempty(t)
             temp = pop!(t)
             visited[temp] = true
-            for J in CartesianRange(max(I1, temp-I1), min(Iend, temp+I1))
+            for J in CartesianRange(max(Ibegin, temp-I1), min(Iend, temp+I1))
                 if s.image_indexmap[temp] != s.image_indexmap[J]
                     push!(n,s.image_indexmap[J])
                 elseif !visited[J]
@@ -51,9 +54,9 @@ function region_adjacency_graph{T<:SegmentedImage}(s::T, weight_fn::Function = d
         n
     end
 
-    local visited   = similar(dims->fill(false,dims), indices(s.image_indexmap))    # Array to mark the pixels that are already visited
-    G               = SimpleWeightedGraph()                                         # The region_adjacency_graph
-    vert_map        = Dict{Int,Int}()                                               # Map that stores (label, vertex) pairs
+    visited  = similar(dims->fill(false,dims), indices(s.image_indexmap))    # Array to mark the pixels that are already visited
+    G        = SimpleWeightedGraph()                                         # The region_adjacency_graph
+    vert_map = Dict{Int,Int}()                                               # Map that stores (label, vertex) pairs
 
     # add vertices to graph
     add_vertices!(G,length(s.segment_labels))
@@ -66,10 +69,10 @@ function region_adjacency_graph{T<:SegmentedImage}(s::T, weight_fn::Function = d
     # add edges to graph
     for p in CartesianRange(indices(s.image_indexmap))
         if !visited[p]
-            local n = Set{Int}()
-            neighbor_regions!(s, p, visited, n)
+            n = Set{Int}()
+            neighbor_regions!(n, visited, s, p)
             for i in n
-                add_edge!(G, vert_map[s.image_indexmap[p]], vert_map[i], weight_fn(s.segment_means[s.image_indexmap[p]], s.segment_means[i]))
+                add_edge!(G, vert_map[s.image_indexmap[p]], vert_map[i], weight_fn(s.image_indexmap[p], i))
             end
         end
     end
@@ -78,40 +81,59 @@ end
 
 
 """
-    new_seg = remove_segment(seg, label, [weight_fn])
+    new_seg = rem_segment(seg, label, diff_fn)
 
 Removes the segment having label `label` and returns the new `SegmentedImage`.
 For more info, see [`remove_segment!`](@ref)
 
 """
-rem_segment{T<:SegmentedImage}(s::T, args...) = rem_segment!(deepcopy(s), args...)
+rem_segment(s::SegmentedImage, args...) = rem_segment!(deepcopy(s), args...)
 
 """
-    remove_segment!(seg, label, [weight_fn])
+    rem_segment!(seg, label, diff_fn)
 
-Removes the segment having label `label` in place, replacing it with the neighboring
-segment having largest pixel count.
+In place removal of the segment having label `label`, replacing it with the neighboring
+segment having least `diff_fn` value.
+
+    diff_fn(rem_label, neigh_label)
+
+A difference measure between label to be removed and its neighbors. `isless` must be
+defined for this measure.
+
+# Examples
+
+```julia
+    # This removes the label `l` and replaces it with the label of
+    # neighbor having maximum pixel count.
+    julia> rem_segment!(seg, l, (i,j)->(-seg.segment_pixel_count[j]))
+
+    # This removes the label `l` and replaces it with the label of
+    # neighbor having the least value of euclidian metric.
+    julia> rem_segment!(seg, l, (i,j)->sum(abs2, seg.segment_means[i]-seg.segment_means[j]))
+```
 
 """
-function rem_segment!{T<:SegmentedImage}(s::T, label::Int, weight_fn::Function = default_diff_fn)
+function rem_segment!(s::SegmentedImage, label::Int, diff_fn::Function)
     haskey(s.segment_means, label) || error("Label $label not present!")
-    G, vert_map = region_adjacency_graph(s, weight_fn)
+    G, vert_map = region_adjacency_graph(s, (i,j)->1)
     vert_label = vert_map[label]
     neigh = neighbors(G, vert_label)
 
-    maxc = first(neigh)
-    maxc_label = s.segment_labels[maxc]
+    minc = first(neigh)
+    minc_val = Inf
     for i in neigh
-        if s.segment_pixel_count[maxc_label] < s.segment_pixel_count[s.segment_labels[i]]
-            maxc = i
-            maxc_label = s.segment_labels[i]
+        d = diff_fn(vert_label, s.segment_labels[i])
+        if d < minc_val
+            minc = i
+            minc_val = d
         end
     end
 
-    vert_map[label] = maxc
+    minc_label = s.segment_labels[minc]
+    vert_map[label] = minc
 
-    s.segment_pixel_count[maxc_label] += s.segment_pixel_count[label]
-    s.segment_means[maxc_label] += (s.segment_means[label] - s.segment_means[maxc_label])*s.segment_pixel_count[label]/s.segment_pixel_count[maxc_label]
+    s.segment_pixel_count[minc_label] += s.segment_pixel_count[label]
+    s.segment_means[minc_label] += (s.segment_means[label] - s.segment_means[minc_label])*s.segment_pixel_count[label]/s.segment_pixel_count[minc_label]
 
     for i in CartesianRange(indices(s.image_indexmap))
         s.image_indexmap[i] = s.segment_labels[vert_map[s.image_indexmap[i]]]
@@ -125,27 +147,35 @@ function rem_segment!{T<:SegmentedImage}(s::T, label::Int, weight_fn::Function =
 end
 
 """
-    new_seg = prune_segments(seg, thres, [weight_fn])
+    new_seg = prune_segments(seg, thres, diff_fn)
 
 Removes all segments having pixel count < `thres` replacing them with their neighbouring
-segment having largest pixel count.
+segment having least `diff_fn`.
+
+    diff_fn(rem_label, neigh_label)
+
+A difference measure between label to be removed and its neighbors. `isless` must be
+defined for this measure.
 
 """
 
-function prune_segments{T<:SegmentedImage}(s::T, thres::Int, weight_fn::Function = default_diff_fn)
+function prune_segments(s::SegmentedImage, thres::Int, diff_fn::Function)
 
-    G, vert_map = region_adjacency_graph(s, weight_fn)
+    G, vert_map = region_adjacency_graph(s, (i,j)->1)
     u = IntDisjointSets(nv(G))
     for v in vertices(G)
         if s.segment_pixel_count[s.segment_labels[v]] < thres
             neigh = neighbors(G, v)
-            maxc = first(neigh)
+            minc = first(neigh)
+            minc_val = Inf
             for i in neigh
-                if s.segment_pixel_count[s.segment_labels[i]] > s.segment_pixel_count[s.segment_labels[maxc]]
-                    maxc = i
+                d = diff_fn(s.segment_labels[v], s.segment_labels[i])
+                if d < minc_val
+                    minc = i
+                    minc_val = d
                 end
             end
-            union!(u, maxc, v)
+            union!(u, minc, v)
         end
     end
 
