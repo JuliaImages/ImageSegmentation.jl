@@ -3,10 +3,10 @@
 labels                = ncut(W, [num_cuts], [thres])
 ```
 
-Segments graph represented by adjacency matrix W using recursive two-way normalized cut.
+Segments graph represented by adjacency matrix W using recursive two-way normalized cut. Returns segment label for each node.
 
 Parameters:  
--    W              = Weighted adjacency matrix for graph.
+-    W              = Weighted (sparse) adjacency matrix for graph.
 -    thres          = Subgraphs aren't split if best normalized cut is above this threshold
 -    num_cuts       = Number of cuts performed to determine optimal cut
 
