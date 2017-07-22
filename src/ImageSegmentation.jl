@@ -20,6 +20,7 @@ include("core.jl")
 include("region_growing.jl")
 include("felzenszwalb.jl")
 include("fast_scanning.jl")
+include("normalized_cut.jl")
 
 export
     # methods
@@ -27,6 +28,7 @@ export
     unseeded_region_growing,
     felzenszwalb,
     fast_scanning,
+    ncut,
 
     # types
     SegmentedImage,
