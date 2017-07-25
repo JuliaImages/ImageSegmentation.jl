@@ -19,10 +19,10 @@ using ImageFiltering
 
 
     img = ones(15, 15)
-    #minima of height 0.2
+    #minima of depth 0.2
     img[3:5, 3:5] = 0.9
     img[4,4] = 0.8
-    #minima of height 0.7
+    #minima of depth 0.7
     img[9:13, 9:13] = 0.8
     img[10:12, 10:12] = 0.7
     img[11,11] = 0.3

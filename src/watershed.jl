@@ -8,14 +8,18 @@ isless{T}(a::PixelKey{T}, b::PixelKey{T}) = (a.val < b.val) || (a.val == b.val &
 
 """
 ```
-segments                = watershed(img, [markers])
+segments                = watershed(img, markers)
 ``` 
 Segments the image using watershed transform. Each basin formed by watershed transform corresponds to a segment.
 If you are using image local minimas as markers, consider using hmin_transform to avoid oversegmentation.
     
 Parameters:  
 -    img            = input grayscale image
--    markers        = an array marking the pixels where flooding should start
+-    markers        = An array (same size as img) with each region's marker assigned a index starting from 1. Zero means not a marker.
+                      If two markers have the same index, their regions will be merged into a single region.
+                      If you have markers as a boolean array, use `label_components`.
+
+
 
 """
 function watershed{T<:Images.NumberLike, S<:Integer, N}(img::AbstractArray{T, N}, markers::AbstractArray{S,N})
@@ -30,7 +34,7 @@ function watershed{T<:Images.NumberLike, S<:Integer, N}(img::AbstractArray{T, N}
 
     R = CartesianRange(indices(img))
     Istart, Iend = first(R), last(R)
-    for i in CartesianRange(size(img))
+    for i in R
         if markers[i] > 0
             for j in CartesianRange(max(Istart,i-1), min(i+1,Iend))
                 if segments[j] == 0
@@ -75,7 +79,7 @@ Suppresses all minima in grayscale image whose depth is less than h.
 
 H-minima transform is defined as the reconstruction by erosion of (img + h) by img. See Morphological image analysis by Soille pg 170-172.  
 """
-function hmin_transform{T<:Images.NumberLike}(img::Array{T, 2}, h::Real)
+function hmin_transform{T<:Images.NumberLike}(img::Array{T, N}, h::Real)
     out = img.+h
     while true
         temp = max.(img, erode(out))
