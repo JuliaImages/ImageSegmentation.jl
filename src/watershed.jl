@@ -79,7 +79,7 @@ Suppresses all minima in grayscale image whose depth is less than h.
 
 H-minima transform is defined as the reconstruction by erosion of (img + h) by img. See Morphological image analysis by Soille pg 170-172.  
 """
-function hmin_transform{T<:Images.NumberLike}(img::Array{T, N}, h::Real)
+function hmin_transform{T<:Images.NumberLike, N}(img::Array{T, N}, h::Real)
     out = img.+h
     while true
         temp = max.(img, erode(out))
