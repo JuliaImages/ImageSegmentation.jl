@@ -23,12 +23,12 @@ end
 """
     G, vert_map = region_adjacency_graph(seg, weight_fn)
 
-Constructs a region adjacency graph from the `SegmentedImage`. It returns the RAG
-along with a label->vertex map. `weight_fn` is used to assign weights to edges.
+Constructs a region adjacency graph (RAG) from the `SegmentedImage`. It returns the RAG
+along with a Dict(label=>vertex) map. `weight_fn` is used to assign weights to the edges.
 
     weight_fn(label1, label2)
 
-Returns a Float64 corresponding to the weight of the edge between label1 and label2.
+Returns a real number corresponding to the weight of the edge between label1 and label2.
 
 """
 function region_adjacency_graph(s::SegmentedImage, weight_fn::Function)
@@ -95,10 +95,10 @@ rem_segment(s::SegmentedImage, args...) = rem_segment!(deepcopy(s), args...)
 In place removal of the segment having label `label`, replacing it with the neighboring
 segment having least `diff_fn` value.
 
-    diff_fn(rem_label, neigh_label)
+    d = diff_fn(rem_label, neigh_label)
 
 A difference measure between label to be removed and its neighbors. `isless` must be
-defined for this measure.
+defined for objects of the type of `d`.
 
 # Examples
 
@@ -146,25 +146,36 @@ function rem_segment!(s::SegmentedImage, label::Int, diff_fn::Function)
     s
 end
 
+prune_segments(s::SegmentedImage, rem_labels::Vector{Int}, diff_fn::Function) =
+    prune_segments(s, i->(i in rem_labels), diff_fn)
+
 """
-    new_seg = prune_segments(seg, thres, diff_fn)
+    new_seg = prune_segments(seg, rem_labels, diff_fn)
 
-Removes all segments having pixel count < `thres` replacing them with their neighbouring
-segment having least `diff_fn`.
+Removes all segments that have labels in `rem_labels` replacing them with their
+neighbouring segment having least `diff_fn`. `rem_labels` is a `Vector` of labels.
 
-    diff_fn(rem_label, neigh_label)
+    new_seg = prune_segments(seg, is_rem, diff_fn)
+
+Removes all segments for which `is_rem` returns true replacing them with their
+neighbouring segment having least `diff_fn`.
+
+    is_rem(label) -> Bool
+
+Returns true if label `label` is to be removed otherwise false.
+
+    d = diff_fn(rem_label, neigh_label)
 
 A difference measure between label to be removed and its neighbors. `isless` must be
-defined for this measure.
-
+defined for objects of the type of `d`.
 """
 
-function prune_segments(s::SegmentedImage, thres::Int, diff_fn::Function)
+function prune_segments(s::SegmentedImage, is_rem::Function, diff_fn::Function)
 
     G, vert_map = region_adjacency_graph(s, (i,j)->1)
     u = IntDisjointSets(nv(G))
     for v in vertices(G)
-        if s.segment_pixel_count[s.segment_labels[v]] < thres
+        if is_rem(s.segment_labels[v])
             neigh = neighbors(G, v)
             minc = first(neigh)
             minc_val = Inf
