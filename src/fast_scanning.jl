@@ -20,6 +20,10 @@ getscalar{T<:Real,N}(A::AbstractArray{T,N}, i::CartesianIndex{N}, block_length::
 
 getscalar(a::Real, i...) = a
 
+getimage(a::AbstractArray) = a
+
+getimage(s::SegmentedImage) = s.image_indexmap
+
 fast_scanning{CT<:Images.NumberLike,N}(img::AbstractArray{CT,N}, block::NTuple{N,Int} =
     ntuple(i->4,Val{N})) = fast_scanning(img, adaptive_thres(img, block))
 

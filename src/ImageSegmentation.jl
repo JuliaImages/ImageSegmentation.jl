@@ -2,7 +2,7 @@ __precompile__()
 
 module ImageSegmentation
 
-using Images, DataStructures, StaticArrays, ImageFiltering, LightGraphs, SimpleWeightedGraphs
+using Images, DataStructures, StaticArrays, ImageFiltering, LightGraphs, SimpleWeightedGraphs, RegionTrees
 
 # For efficient hashing of CartesianIndex
 if !isdefined(Base.IteratorsMD, :cartindexhash_seed)
@@ -21,6 +21,7 @@ include("region_growing.jl")
 include("felzenszwalb.jl")
 include("fast_scanning.jl")
 include("watershed.jl")
+include("region_merging.jl")
 
 export
     # methods
@@ -34,6 +35,8 @@ export
     rem_segment,
     rem_segment!,
     prune_segments,
+    region_tree,
+    region_splitting,
 
     # types
     SegmentedImage,
