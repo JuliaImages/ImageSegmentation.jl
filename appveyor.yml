@@ -32,3 +32,8 @@ build_script:
 
 test_script:
   - C:\projects\julia\bin\julia -e "Pkg.test(\"ImageSegmentation\")"
+
+matrix:
+  allow_failures:
+    - JULIAVERSION: "julianightlies/bin/winnt/x86/julia-latest-win32.exe"
+    - JULIAVERSION: "julianightlies/bin/winnt/x64/julia-latest-win64.exe"

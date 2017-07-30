@@ -65,9 +65,8 @@ function fast_scanning{CT<:Union{Colorant,Real},N}(img::AbstractArray{CT,N}, thr
 
     # Neighbourhood function
     _diagmN = diagm([1 for i in 1:N])
-    half_region = ntuple(i-> CartesianIndex{N}(ntuple(j->_diagmN[j,i], Val{N})), Val{N})
-    n_gen(region) = x -> ntuple(i-> x-region[i], Val{N})
-    neighbourhood = n_gen(half_region)
+    half_region::NTuple{N,CartesianIndex{N}} = ntuple(i-> CartesianIndex{N}(ntuple(j->_diagmN[j,i], Val{N})), Val{N})
+    neighbourhood(x) = ntuple(i-> x-half_region[i], Val{N})
 
     # Required data structures
     result              =   similar(dims->fill(-1,dims), indices(img))      # Array to store labels
@@ -85,7 +84,7 @@ function fast_scanning{CT<:Union{Colorant,Real},N}(img::AbstractArray{CT,N}, thr
         for p in neighbourhood(point)
             if checkbounds(Bool, img, p)
                 root_p = find_root(temp_labels, result[p])
-                            if diff_fn(region_means[root_p], img[point]) < getscalar(threshold, point, block_length)
+                if diff_fn(region_means[root_p], img[point]) < getscalar(threshold, point, block_length)
                     if prev_label == 0
                         prev_label = root_p
                     elseif prev_label != root_p

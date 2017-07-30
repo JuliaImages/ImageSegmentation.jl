@@ -17,3 +17,7 @@ after_success:
   - julia -e 'cd(Pkg.dir("ImageSegmentation")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
   # push coverage results to Codecov
   - julia -e 'cd(Pkg.dir("ImageSegmentation")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
+
+matrix:
+  allow_failures:
+    - julia: nightly
