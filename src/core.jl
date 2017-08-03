@@ -174,7 +174,7 @@ function prune_segments(s::SegmentedImage, is_rem::Function, diff_fn::Function)
 
     G, vert_map = region_adjacency_graph(s, (i,j)->1)
     u = IntDisjointSets(nv(G))
-    for v in vertices(G)
+    for v in LightGraphs.vertices(G)
         if is_rem(s.segment_labels[v])
             neigh = neighbors(G, v)
             minc = first(neigh)
