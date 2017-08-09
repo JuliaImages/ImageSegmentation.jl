@@ -1,3 +1,10 @@
+makebt(i) = ()
+@inline makebt(i, ind, rest...) = (i & 1 != 0, makebt(i>>1, rest...)...)
+
+makert(ind::Int, start_ind::NTuple, mid_ind::NTuple, end_ind::NTuple) = ()
+@inline makert(ind::Int, start_ind::NTuple, mid_ind::NTuple, end_ind::NTuple, b::Bool, rest...) =
+    (b?(mid_ind[ind]+1:end_ind[ind]):(start_ind[ind]:mid_ind[ind]), makert(ind+1, start_ind, mid_ind, end_ind, rest...)...)
+
 function region_tree!{T<:Union{Colorant, Real},N}(rtree::Cell, img::AbstractArray{T,N}, homogeneous::Function)
 
     if *(length.(indices(img))...) == 0
@@ -16,24 +23,25 @@ function region_tree!{T<:Union{Colorant, Real},N}(rtree::Cell, img::AbstractArra
     end_ind = last(CartesianRange(indices(img))).I
     mid_ind = (start_ind.+end_ind).÷2
 
-    bv = MVector{N,Bool}()
-    rv = MVector{N,UnitRange{Int64}}()
     for i in 0:2^N-1
-        for j in 0:N-1
-            bv[j+1] = (i>>j)&1
-        end
-        for j in 1:N
-            if bv[j]
-                rv[j] = mid_ind[j]+1:end_ind[j]
-            else
-                rv[j] = start_ind[j]:mid_ind[j]
-            end
-        end
-
-        region_tree!(rtree[(Int.(bv) .+ 1)...], view(img, rv...), homogeneous)
+        bt = makebt(i, start_ind...)
+        rt = makert(1, start_ind, mid_ind, end_ind, bt...)
+        region_tree!(rtree[(Int.(bt) .+ 1)...], view(img, rt...), homogeneous)
     end
     rtree
 end
+
+"""
+    t = region_tree(img, homogeneous)
+
+Creates a region tree from `img` by splitting it recursively until
+all the regions are homogeneous.
+
+    b = homogeneous(img)
+
+Returns true if `img` is homogeneous else false
+
+"""
 
 region_tree{T<:Union{Colorant, Real},N}(img::AbstractArray{T,N}, homogeneous::Function) =
     region_tree!(Cell(SVector(first(CartesianRange(indices(img))).I), SVector(length.(indices(img))), (0.,0)), img, homogeneous)
@@ -59,24 +67,26 @@ function fill_recursive!{N}(seg::SegmentedImage, image_indexmap::AbstractArray{I
     bv = MVector{N,Bool}()
     rv = MVector{N,UnitRange{Int64}}()
     for i in 0:2^N-1
-        for j in 0:N-1
-            bv[j+1] = (i>>j)&1
-        end
-        for j in 1:N
-            if bv[j]
-                rv[j] = mid_ind[j]+1:end_ind[j]
-            else
-                rv[j] = start_ind[j]:mid_ind[j]
-            end
-        end
-
-        lc = fill_recursive!(seg, view(image_indexmap, rv...), lc, rtree[(Int.(bv) .+ 1)...])
+        bt = makebt(i, start_ind...)
+        rt = makert(1, start_ind, mid_ind, end_ind, bt...)
+        lc = fill_recursive!(seg, view(image_indexmap, rt...), lc, rtree[(Int.(bt) .+ 1)...])
     end
     lc
 end
 
-function region_splitting{T<:Union{Colorant, Real},N}(img::AbstractArray{T,N}, homogeneous::Function)
+"""
+    seg = region_splitting(img, homogeneous)
 
+Segments `img` by recursively splitting it until all the segments
+are homogeneous.
+
+    b = homogeneous(img)
+
+Returns true if `img` is homogeneous else false
+
+"""
+
+function region_splitting{T<:Union{Colorant, Real},N}(img::AbstractArray{T,N}, homogeneous::Function)
     rtree = region_tree(img, homogeneous)
     seg = SegmentedImage(similar(img, Int), Vector{Int}(), Dict{Int, Images.accum(T)}(), Dict{Int, Int}())
     lc = 1
