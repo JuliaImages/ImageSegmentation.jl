@@ -1,5 +1,4 @@
-acc_type{T}(a::T) = Images.accum(T)(a);
-homogeneous{T<:Union{Colorant,Real}, N}(i::AbstractArray{T,N}) = (acc_type(maximum(i))-acc_type(minimum(i)) < 1)
+homogeneous(i::AbstractArray{T,N}) where {T<:Union{Colorant,Real}, N} = -(extrema(i)...) == 0
 
 @testset "Region Splitting" begin
 

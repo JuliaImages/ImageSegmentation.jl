@@ -3,9 +3,9 @@ makebt(i) = ()
 
 makert(ind::Int, start_ind::NTuple, mid_ind::NTuple, end_ind::NTuple) = ()
 @inline makert(ind::Int, start_ind::NTuple, mid_ind::NTuple, end_ind::NTuple, b::Bool, rest...) =
-    (b?(mid_ind[ind]+1:end_ind[ind]):(start_ind[ind]:mid_ind[ind]), makert(ind+1, start_ind, mid_ind, end_ind, rest...)...)
+    (b ? (mid_ind[ind]+1:end_ind[ind]) : (start_ind[ind]:mid_ind[ind]), makert(ind+1, start_ind, mid_ind, end_ind, rest...)...)
 
-function region_tree!{T<:Union{Colorant, Real},N}(rtree::Cell, img::AbstractArray{T,N}, homogeneous::Function)
+function region_tree!(rtree::Cell, img::AbstractArray{T,N}, homogeneous::Function) where T<:Union{Colorant, Real} where N
 
     if *(length.(indices(img))...) == 0
         return rtree
@@ -39,14 +39,22 @@ all the regions are homogeneous.
 
     b = homogeneous(img)
 
-Returns true if `img` is homogeneous else false
+Returns true if `img` is homogeneous.
+
+# Examples
+
+```jldoctest
+# img is an array with elements of type `Float64`
+julia> homogeneous(img::AbstractArray{T,N}) where {T<:Colorant,N} = -(extrema(img)...)*-1 < Gray{Float64}(0.2);
+julia> t = region_tree(img, homogeneous);
+```
 
 """
 
-region_tree{T<:Union{Colorant, Real},N}(img::AbstractArray{T,N}, homogeneous::Function) =
+region_tree(img::AbstractArray{T,N}, homogeneous::Function) where {T<:Union{Colorant, Real},N} =
     region_tree!(Cell(SVector(first(CartesianRange(indices(img))).I), SVector(length.(indices(img))), (0.,0)), img, homogeneous)
 
-function fill_recursive!{N}(seg::SegmentedImage, image_indexmap::AbstractArray{Int,N}, lc::Int, rtree::Cell)::Int
+function fill_recursive!(seg::SegmentedImage, image_indexmap::AbstractArray{Int,N}, lc::Int, rtree::Cell)::Int where N
 
     if *(length.(indices(image_indexmap))...) == 0
         return lc
@@ -82,11 +90,19 @@ are homogeneous.
 
     b = homogeneous(img)
 
-Returns true if `img` is homogeneous else false
+Returns true if `img` is homogeneous.
+
+# Examples
+
+```jldoctest
+# img is an array with elements of type `Float64`
+julia> homogeneous(img::AbstractArray{T,N}) where {T<:Colorant,N} = -(extrema(img)...)*-1 < Gray{Float64}(0.2);
+julia> seg = region_splitting(img, homogeneous);
+```
 
 """
 
-function region_splitting{T<:Union{Colorant, Real},N}(img::AbstractArray{T,N}, homogeneous::Function)
+function region_splitting(img::AbstractArray{T,N}, homogeneous::Function) where T<:Union{Colorant, Real} where N
     rtree = region_tree(img, homogeneous)
     seg = SegmentedImage(similar(img, Int), Vector{Int}(), Dict{Int, Images.accum(T)}(), Dict{Int, Int}())
     lc = 1
