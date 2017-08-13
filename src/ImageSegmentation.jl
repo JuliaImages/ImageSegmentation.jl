@@ -23,6 +23,7 @@ include("fast_scanning.jl")
 include("watershed.jl")
 include("region_merging.jl")
 include("meanshift.jl")
+include("fuzzy_cmeans.jl")
 
 export
     # methods
@@ -39,7 +40,7 @@ export
     region_tree,
     region_splitting,
     meanshift,
-
+    fuzzy_cmeans,
     # types
     SegmentedImage,
     ImageEdge
