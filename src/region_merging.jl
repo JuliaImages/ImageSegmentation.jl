@@ -45,7 +45,11 @@ Returns true if `img` is homogeneous.
 
 ```jldoctest
 # img is an array with elements of type `Float64`
-julia> homogeneous(img::AbstractArray{T,N}) where {T<:Colorant,N} = -(extrema(img)...)*-1 < Gray{Float64}(0.2);
+julia> function homogeneous(img)
+           min, max = extrema(img)
+           max - min < 0.2
+       end
+       
 julia> t = region_tree(img, homogeneous);
 ```
 
@@ -96,7 +100,11 @@ Returns true if `img` is homogeneous.
 
 ```jldoctest
 # img is an array with elements of type `Float64`
-julia> homogeneous(img::AbstractArray{T,N}) where {T<:Colorant,N} = -(extrema(img)...)*-1 < Gray{Float64}(0.2);
+julia> function homogeneous(img)
+           min, max = extrema(img)
+           max - min < 0.2
+       end
+
 julia> seg = region_splitting(img, homogeneous);
 ```
 
