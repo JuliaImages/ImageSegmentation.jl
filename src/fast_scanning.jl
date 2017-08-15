@@ -1,6 +1,6 @@
-sharpness{CT<:Images.NumberLike,N}(img::AbstractArray{CT,N}) = var(imfilter(img, Kernel.Laplacian(ntuple(i->true, Val{N}))))
+sharpness(img::AbstractArray{CT,N}) where {CT<:Images.NumberLike,N} = var(imfilter(img, Kernel.Laplacian(ntuple(i->true, Val{N}))))
 
-function adaptive_thres{CT<:Images.NumberLike,N}(img::AbstractArray{CT,N}, block::NTuple{N,Int})
+function adaptive_thres(img::AbstractArray{CT,N}, block::NTuple{N,Int}) where {CT<:Images.NumberLike,N}
     threshold = zeros(Float64, block)
     block_length = CartesianIndex(ntuple(i->ceil(Int,length(indices(img,i))/block[i]),Val{N}))
     net_s = sharpness(img)
@@ -15,13 +15,13 @@ function adaptive_thres{CT<:Images.NumberLike,N}(img::AbstractArray{CT,N}, block
     threshold
 end
 
-getscalar{T<:Real,N}(A::AbstractArray{T,N}, i::CartesianIndex{N}, block_length::CartesianIndex{N}) =
+getscalar(A::AbstractArray{T,N}, i::CartesianIndex{N}, block_length::CartesianIndex{N}) where {T<:Real,N} =
     A[CartesianIndex(ntuple(j->(i[j]-1)÷block_length[j]+1, Val{N}))]
 
 getscalar(a::Real, i...) = a
 
-fast_scanning{CT<:Images.NumberLike,N}(img::AbstractArray{CT,N}, block::NTuple{N,Int} =
-    ntuple(i->4,Val{N})) = fast_scanning(img, adaptive_thres(img, block))
+fast_scanning(img::AbstractArray{CT,N}, block::NTuple{N,Int} =
+ntuple(i->4,Val{N})) where {CT<:Images.NumberLike,N} = fast_scanning(img, adaptive_thres(img, block))
 
 """
     seg_img = fast_scanning(img, threshold, [diff_fn])
@@ -57,7 +57,7 @@ julia> seg.image_indexmap
 Jian-Jiun Ding, Cheng-Jin Kuo, Wen-Chih Hong,
 "An efficient image segmentation technique by fast scanning and adaptive merging"
 """
-function fast_scanning{CT<:Union{Colorant,Real},N}(img::AbstractArray{CT,N}, threshold::Union{AbstractArray,Real}, diff_fn::Function = default_diff_fn)
+function fast_scanning(img::AbstractArray{CT,N}, threshold::Union{AbstractArray,Real}, diff_fn::Function = default_diff_fn) where {CT<:Union{Colorant,Real},N}
 
     if threshold isa AbstractArray
         ndims(img) == ndims(threshold) || error("Dimension count of image and threshold do not match")

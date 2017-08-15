@@ -1,10 +1,10 @@
 import Base.isless
 
-immutable PixelKey{CT}
+struct PixelKey{CT}
     val::CT
     time_step::Int
 end
-isless{T}(a::PixelKey{T}, b::PixelKey{T}) = (a.val < b.val) || (a.val == b.val && a.time_step < b.time_step)
+isless(a::PixelKey{T}, b::PixelKey{T}) where {T} = (a.val < b.val) || (a.val == b.val && a.time_step < b.time_step)
 
 """
 ```
@@ -22,7 +22,7 @@ Parameters:
 
 
 """
-function watershed{T<:Images.NumberLike, S<:Integer, N}(img::AbstractArray{T, N}, markers::AbstractArray{S,N})
+function watershed(img::AbstractArray{T, N}, markers::AbstractArray{S,N}) where {T<:Images.NumberLike, S<:Integer, N}
 
     if indices(img) != indices(markers)
         error("image size doesn't match marker image size")
@@ -79,7 +79,7 @@ Suppresses all minima in grayscale image whose depth is less than h.
 
 H-minima transform is defined as the reconstruction by erosion of (img + h) by img. See Morphological image analysis by Soille pg 170-172.  
 """
-function hmin_transform{T<:Images.NumberLike, N}(img::Array{T, N}, h::Real)
+function hmin_transform(img::Array{T, N}, h::Real) where {T<:Images.NumberLike, N}
     out = img.+h
     while true
         temp = max.(img, erode(out))
