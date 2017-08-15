@@ -1,10 +1,11 @@
-function update_weights!(weights, arr, centers, fuzziness, norm_fn)
+function update_weights!(weights, data, centers, fuzziness, norm_fn)
   pow = 2.0/(fuzziness-1)
-  for i in 1:length(indices(arr)[2])
-    vali = arr[:,i]
-    for j in 1:length(indices(centers)[2])
+  ly, lx = length.(indices(weights))
+  for i in 1:ly
+    vali = data[:,i]
+    for j in 1:lx
       den = 0.0
-      for k in 1:length(indices(centers)[2])
+      for k in 1:lx
         den += (norm_fn(vali-centers[:,j])/norm_fn(vali-centers[:,k]))^pow
       end
       weights[i,j] = 1.0/den
@@ -12,41 +13,40 @@ function update_weights!(weights, arr, centers, fuzziness, norm_fn)
   end
 end
 
-function update_centers!(centers, arr, weights, fuzziness)
-  for j in 1:length(indices(centers)[2])
-    num = fill(0.0, length(indices(arr)[1]))
+function update_centers!(centers, data, weights, fuzziness)
+  ly, lx = length.(indices(weights))
+  for j in 1:lx
+    num = zero(data[:,1])
     den = 0.0
-    for i in 1:length(indices(arr)[2])
+    for i in 1:ly
       δm = weights[i,j]^fuzziness
-      num += δm*arr[:,i]
+      num += δm * data[:,i]
       den += δm
     end
     centers[:,j] = num/den
   end
 end
 
-function fuzzy_cmeans{T<:Real}(arr::AbstractArray{T,2}, C::Int, totiter::Int, eps_::Real, fuzziness::Real, norm_fn::Function = norm)
-  weights = rand(Float64, (length(indices(arr)[2]), C))
-  for i in 1:length(indices(arr)[2])
+function fuzzy_cmeans(data::AbstractArray{T,2}, C::Int, totiter::Int, eps_::Real, fuzziness::Real, norm_fn::Function = norm) where T<:Real
+  ly, lx = length.(indices(data))
+
+  weights = rand(Float64, (lx, C))
+  for i in 1:lx
     s = sum(weights[i,:])
     weights[i,:] /= s
   end
 
-  centers = fill(0.0, length(indices(arr)[1]), C)
-  update_centers!(centers, arr, weights, fuzziness)
+  centers = fill(0.0, ly, C)
 
   δ = Inf
   iter = 0
-  prev_centers = centers
+  prev_centers = identity.(centers)
 
   while iter < totiter && δ > eps_
-
-    update_centers!(centers, arr, weights, fuzziness)
-    update_weights!(weights, arr, centers, fuzziness, norm_fn)
-    println(prev_centers)
-    println(centers)
-    δ = maximum([norm_fn(prev_centers[:,i] - centers[:,i]) for i in 1:length(indices(centers)[2])])
-    prev_centers = centers
+    update_centers!(centers, data, weights, fuzziness)
+    update_weights!(weights, data, centers, fuzziness, norm_fn)
+    δ = maximum([norm_fn(prev_centers[:,i] - centers[:,i]) for i in 1:C])
+    copy!(prev_centers, centers)
     iter += 1
     println(iter,": ",δ)
   end
@@ -54,10 +54,8 @@ function fuzzy_cmeans{T<:Real}(arr::AbstractArray{T,2}, C::Int, totiter::Int, ep
   weights, centers
 end
 
-function fuzzy_cmeans{T<:Colorant, N}(img::AbstractArray{T,N}, rest...)
+function fuzzy_cmeans(img::AbstractArray{T,N}, rest...) where T<:Colorant where N
   ch = channelview(img)
-  n = ndims(ch)
-  pch = permuteddimsview(ch, ntuple(i->i%n+1, n))
-  data = reshape(pch, *(length.(indices(img))...), :)'
+  data = reshape(ch, :, *(length.(indices(img))...))
   fuzzy_cmeans(data, rest...)
 end
