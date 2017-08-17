@@ -3,6 +3,7 @@ __precompile__()
 module ImageSegmentation
 
 using Images, DataStructures, StaticArrays, ImageFiltering, LightGraphs, SimpleWeightedGraphs, RegionTrees, Distances, StaticArrays, Clustering
+import Clustering: fuzzy_cmeans
 
 # For efficient hashing of CartesianIndex
 if !isdefined(Base.IteratorsMD, :cartindexhash_seed)
