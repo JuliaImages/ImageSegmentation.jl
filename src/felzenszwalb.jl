@@ -80,7 +80,7 @@ function felzenszwalb(edges::Array{ImageEdge}, num_vertices::Int, k::Real, min_s
     return index_map, num_sets
 end
 
-function felzenszwalb{T<:Union{Real,Color}}(img::AbstractArray{T, 2}, k::Real, min_size::Int = 0)
+function felzenszwalb(img::AbstractArray{T, 2}, k::Real, min_size::Int = 0) where T<:Union{Real,Color}
 
     rows, cols = size(img)
     num_vertices = rows*cols

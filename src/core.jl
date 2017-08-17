@@ -2,7 +2,7 @@
 `SegmentedImage` type contains the index-label mapping, assigned labels,
 segment mean intensity and pixel count of each segment.
 """
-immutable SegmentedImage{T<:AbstractArray,U<:Union{Colorant,Real}}
+struct SegmentedImage{T<:AbstractArray,U<:Union{Colorant,Real}}
     image_indexmap::T
     segment_labels::Vector{Int}
     segment_means::Dict{Int,U}
@@ -14,7 +14,7 @@ end
 
 Construct an edge in a Region Adjacency Graph. `index1` and `index2` are the integers corresponding to individual pixels/voxels (in the sense of linear indexing via `sub2ind`), and `weight` is the edge weight (measures the dissimilarity between pixels/voxels).
 """
-immutable ImageEdge
+struct ImageEdge
     index1::Int
     index2::Int
     weight::Float64
