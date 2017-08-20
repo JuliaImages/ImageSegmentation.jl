@@ -1,6 +1,6 @@
 using Images, NearestNeighbors, Distances, StaticArrays, Clustering
 
-function meanshift(img::Array{Float64, 2}, spatial_radius::Float64, range_radius::Float64, min_density::Int)
+function meanshift{T<:Images.NumberLike}(img::Array{T, 2}, spatial_radius::Real, range_radius::Real; iter::int = 50, eps::Real = 0.01)
 
     rows, cols = size(img)
     rowbins = Int(floor(rows/spatial_radius))
@@ -44,8 +44,6 @@ function meanshift(img::Array{Float64, 2}, spatial_radius::Float64, range_radius
         return den<=0 ? pt : num/den
     end
 
-    iter = 50
-    eps = 0.01
     modes = Array{Float64}(3, rows*cols)
 
     for i in CartesianRange(size(img))
@@ -60,39 +58,24 @@ function meanshift(img::Array{Float64, 2}, spatial_radius::Float64, range_radius
         modes[:, (i[1]-1)*rows+i[2]] = [pt[1]/spatial_radius, pt[2]/spatial_radius, pt[3]/range_radius]
     end
 
-    clusters = dbscan(modes, 1.414);
-    centers = Array{Float64}(3, rows*cols)
+    clusters = dbscan(modes, 1.414)
+    num_segments = length(clusters)
 
-    clusters = sort(clusters, lt=(x,y)->x.size>=y.size)
-    id = searchsorted([cluster.size for cluster in clusters], min_density+0.5, rev=true).stop
+    result              = similar(img, Int)
+    labels              = Array(1:num_segments)
+    region_means        = Dict{Int, Images.accum(T)}()
+    region_pix_count    = Dict{Int, Int}()
 
-    big_clusters = clusters[1:id]
-    small_clusters = clusters[id+1:end]
-    cluster_centers = Array{Float64}(3, 0)
-
-    for cluster in big_clusters
-        cluster_center = mean(modes[:,cluster.core_indices],2)
-        cluster_centers = hcat(cluster_centers, cluster_center)
-        for idx in cluster.core_indices
-            centers[:,idx]=cluster_center
+    cluster_idx = 0
+    for cluster in clusters
+        cluster_idx += 1
+        for index in cluster.core_indices
+            i, j = floor(Int, (index-1)/rows)+1, i%rows
+            result[i, j] = cluster_idx
+            region_pix_count[result[i,j]] = get(region_pix_count, result[i, j], 0) + 1
+            region_means[result[i,j]] = get(region_means, result[i,j], zero(Images.accum(T))) + (img[i, j] - get(region_means, result[i,j], zero(Images.accum(T))))/region_pix_count[result[i,j]]
         end
     end
 
-    kdtree = KDTree(cluster_centers, Chebyshev());
-
-    for cluster in small_clusters
-        cluster_center = mean(modes[:,cluster.core_indices],2)
-        closest_idx, _ = knn(kdtree, cluster_center, 1)
-        for idx in cluster.core_indices
-            centers[:,idx]=cluster_centers[:,closest_idx[1]]
-        end
-    end
-
-    result = zeros(img)
-
-    for i in CartesianRange(size(result))
-        result[i]=centers[3,(i[1]-1)*rows+i[2]]*range_radius
-    end
-
-    return result
+    return SegmentedImage(result, labels, region_means, region_pix_count)
 end
