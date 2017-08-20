@@ -6,7 +6,7 @@
     img[5:6, 5:6] = 0.8
     T = Gray{N0f8}
 
-    result = felzenszwalb(img, 1)
+    result = meanshift(img, 8, 7/255)
 
     @test length(result.segment_labels) == 4
     @test result.segment_labels == collect(1:4)

@@ -1,4 +1,14 @@
-using Images, NearestNeighbors, Distances, StaticArrays, Clustering
+"""
+```
+segments                = meanshift(img, spatial_radius, range_radius, [iter], [eps])
+``` 
+Segments the image using meanshift clustering.
+    
+Parameters:  
+-    img                            = input grayscale image
+-    spatial_radius/range_radius    = bandwidth parameters of truncated normal kernel. Controlling the size of the kernel determines the resolution of the mode detection.
+-    iter/eps                       = stopping criterion for meanshift procedure. The algorithm stops after iter iterations or if kernel center moves less than eps distance in an update step, whichever comes first.
+"""
 
 function meanshift{CT}(img::Array{CT, 2}, spatial_radius::Real, range_radius::Real; iter::Int = 50, eps::Real = 0.01)
 
@@ -11,7 +21,7 @@ function meanshift{CT}(img::Array{CT, 2}, spatial_radius::Real, range_radius::Re
     rowbin(x)::Int = min(floor(x/spatial_radius) +1, rowbins)
     colbin(x)::Int = min(floor(x/spatial_radius) +1, colbins)
 
-    buckets = Array{Vector{CartesianIndex{2}}}(rowbins, colbins, colorbins);
+    buckets = Array{Vector{CartesianIndex{2}}}(rowbins, colbins, colorbins)
     for i in CartesianRange(size(buckets))
         buckets[i]=Array{CartesianIndex{2}}(0)
     end
@@ -24,7 +34,7 @@ function meanshift{CT}(img::Array{CT, 2}, spatial_radius::Real, range_radius::Re
         return ((a[1]-b[1])/spatial_radius)^2 + ((a[2]-b[2])/spatial_radius)^2 + ((a[3]-b[3])/range_radius)
     end
 
-    function getnext(pt::SVector{3, Float64})::SVector{3, Float64}
+    function neighborhood_mean(pt::SVector{3, Float64})::SVector{3, Float64}
         den = 0.0
         num = SVector(0.0, 0.0, 0.0)
 
@@ -49,13 +59,13 @@ function meanshift{CT}(img::Array{CT, 2}, spatial_radius::Real, range_radius::Re
     for i in CartesianRange(size(img))
         pt::SVector{3, Float64} = SVector(i[1], i[2], img[i])
         for j in 1:iter
-            nextpt = getnext(pt)
+            nextpt = neighborhood_mean(pt)
             if dist2(pt, nextpt) < eps^2
                 break
             end
             pt = nextpt
         end
-        modes[:, (i[1]-1)*rows+i[2]] = [pt[1]/spatial_radius, pt[2]/spatial_radius, pt[3]/range_radius]
+        modes[:, i[1] + (i[2]-1)*rows] = [pt[1]/spatial_radius, pt[2]/spatial_radius, pt[3]/range_radius]
     end
 
     clusters = dbscan(modes, 1.414)

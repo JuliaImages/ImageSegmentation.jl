@@ -2,7 +2,7 @@ __precompile__()
 
 module ImageSegmentation
 
-using Images, DataStructures
+using Images, DataStructures, Distances, StaticArrays, Clustering
 
 include("core.jl")
 include("region_growing.jl")
