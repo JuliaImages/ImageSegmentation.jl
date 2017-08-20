@@ -1,6 +1,6 @@
 using Images, NearestNeighbors, Distances, StaticArrays, Clustering
 
-function meanshift{T<:Images.NumberLike}(img::Array{T, 2}, spatial_radius::Real, range_radius::Real; iter::int = 50, eps::Real = 0.01)
+function meanshift{CT}(img::Array{CT, 2}, spatial_radius::Real, range_radius::Real; iter::Int = 50, eps::Real = 0.01)
 
     rows, cols = size(img)
     rowbins = Int(floor(rows/spatial_radius))
@@ -20,8 +20,8 @@ function meanshift{T<:Images.NumberLike}(img::Array{T, 2}, spatial_radius::Real,
         push!( buckets[rowbin(i[1]), colbin(i[2]), colorbin(img[i])], i)
     end
 
-    function dist(a::SVector, b::SVector)::Float64
-        return sqrt(((a[1]-b[1])/spatial_radius)^2 + ((a[2]-b[2])/spatial_radius)^2 + ((a[3]-b[3])/range_radius)^2)
+    function dist2(a::SVector, b::SVector)::Float64
+        return ((a[1]-b[1])/spatial_radius)^2 + ((a[2]-b[2])/spatial_radius)^2 + ((a[3]-b[3])/range_radius)
     end
 
     function getnext(pt::SVector{3, Float64})::SVector{3, Float64}
@@ -34,7 +34,7 @@ function meanshift{T<:Images.NumberLike}(img::Array{T, 2}, spatial_radius::Real,
 
         for J in CartesianRange(max(I1, I-I1), min(Iend, I+I1))
             for point in buckets[J]
-                if dist(pt, SVector(point[1], point[2], img[point])) <= 1
+                if dist2(pt, SVector(point[1], point[2], img[point])) <= 1
                     num += SVector(point[1], point[2], img[point])
                     den += 1
                 end
@@ -50,7 +50,7 @@ function meanshift{T<:Images.NumberLike}(img::Array{T, 2}, spatial_radius::Real,
         pt::SVector{3, Float64} = SVector(i[1], i[2], img[i])
         for j in 1:iter
             nextpt = getnext(pt)
-            if dist(pt, nextpt) < eps
+            if dist2(pt, nextpt) < eps^2
                 break
             end
             pt = nextpt
@@ -60,21 +60,26 @@ function meanshift{T<:Images.NumberLike}(img::Array{T, 2}, spatial_radius::Real,
 
     clusters = dbscan(modes, 1.414)
     num_segments = length(clusters)
-
     result              = similar(img, Int)
     labels              = Array(1:num_segments)
-    region_means        = Dict{Int, Images.accum(T)}()
+    region_means        = Dict{Int, Images.accum(CT)}()
     region_pix_count    = Dict{Int, Int}()
 
     cluster_idx = 0
     for cluster in clusters
         cluster_idx += 1
+        region_pix_count[cluster_idx] = cluster.size
         for index in cluster.core_indices
-            i, j = floor(Int, (index-1)/rows)+1, i%rows
+            i, j = (index-1)%rows + 1, floor(Int, (index-1)/rows) + 1
             result[i, j] = cluster_idx
-            region_pix_count[result[i,j]] = get(region_pix_count, result[i, j], 0) + 1
-            region_means[result[i,j]] = get(region_means, result[i,j], zero(Images.accum(T))) + (img[i, j] - get(region_means, result[i,j], zero(Images.accum(T))))/region_pix_count[result[i,j]]
+            region_means[cluster_idx] = get(region_means, cluster_idx, zero(Images.accum(CT))) + img[i, j]
         end
+        for index in cluster.boundary_indices
+            i, j = (index-1)%rows + 1, floor(Int, (index-1)/rows) + 1
+            result[i, j] = cluster_idx
+            region_means[cluster_idx] = get(region_means, cluster_idx, zero(Images.accum(CT))) + img[i, j]
+        end
+        region_means[cluster_idx] /= region_pix_count[cluster_idx]
     end
 
     return SegmentedImage(result, labels, region_means, region_pix_count)
