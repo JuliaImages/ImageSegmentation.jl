@@ -1,6 +1,6 @@
 """
 ```
-segments                = meanshift(img, spatial_radius, range_radius, [iter], [eps])
+segments                = meanshift(img, spatial_radius, range_radius; iter=50, eps=0.01))
 ``` 
 Segments the image using meanshift clustering. Returns a `SegmentedImage`.
     
