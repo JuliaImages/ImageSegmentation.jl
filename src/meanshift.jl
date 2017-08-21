@@ -79,7 +79,7 @@ function meanshift{CT}(img::Array{CT, 2}, spatial_radius::Real, range_radius::Re
     for cluster in clusters
         cluster_idx += 1
         region_pix_count[cluster_idx] = cluster.size
-        for index in (cluster.core_indices, cluster.boundary_indices)
+        for index in [cluster.core_indices; cluster.boundary_indices]
             i, j = (index-1)%rows + 1, floor(Int, (index-1)/rows) + 1
             result[i, j] = cluster_idx
             region_means[cluster_idx] = get(region_means, cluster_idx, zero(Images.accum(CT))) + img[i, j]
