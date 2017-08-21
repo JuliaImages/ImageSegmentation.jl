@@ -2,7 +2,7 @@
 ```
 segments                = meanshift(img, spatial_radius, range_radius, [iter], [eps])
 ``` 
-Segments the image using meanshift clustering.
+Segments the image using meanshift clustering. Returns a `SegmentedImage`.
     
 Parameters:  
 -    img                            = input grayscale image
@@ -31,7 +31,7 @@ function meanshift{CT}(img::Array{CT, 2}, spatial_radius::Real, range_radius::Re
     end
 
     function dist2(a::SVector, b::SVector)::Float64
-        return ((a[1]-b[1])/spatial_radius)^2 + ((a[2]-b[2])/spatial_radius)^2 + ((a[3]-b[3])/range_radius)
+        return ((a[1]-b[1])/spatial_radius)^2 + ((a[2]-b[2])/spatial_radius)^2 + ((a[3]-b[3])/range_radius)^2
     end
 
     function neighborhood_mean(pt::SVector{3, Float64})::SVector{3, Float64}
@@ -79,12 +79,7 @@ function meanshift{CT}(img::Array{CT, 2}, spatial_radius::Real, range_radius::Re
     for cluster in clusters
         cluster_idx += 1
         region_pix_count[cluster_idx] = cluster.size
-        for index in cluster.core_indices
-            i, j = (index-1)%rows + 1, floor(Int, (index-1)/rows) + 1
-            result[i, j] = cluster_idx
-            region_means[cluster_idx] = get(region_means, cluster_idx, zero(Images.accum(CT))) + img[i, j]
-        end
-        for index in cluster.boundary_indices
+        for index in (cluster.core_indices, cluster.boundary_indices)
             i, j = (index-1)%rows + 1, floor(Int, (index-1)/rows) + 1
             result[i, j] = cluster_idx
             region_means[cluster_idx] = get(region_means, cluster_idx, zero(Images.accum(CT))) + img[i, j]
