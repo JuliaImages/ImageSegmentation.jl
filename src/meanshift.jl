@@ -42,7 +42,7 @@ function meanshift{CT}(img::Array{CT, 2}, spatial_radius::Real, range_radius::Re
         I1, Iend = first(R), last(R)
         I = CartesianIndex(rowbin(pt[1]), colbin(pt[2]), colorbin(pt[3]))
 
-        for J in CartesianRange(max(I1, I-I1), min(Iend, I+I1))
+        for J in CartesianRange(max(I1, I-1), min(Iend, I+1))
             for point in buckets[J]
                 if dist2(pt, SVector(point[1], point[2], img[point])) <= 1
                     num += SVector(point[1], point[2], img[point])
