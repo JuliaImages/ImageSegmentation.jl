@@ -45,7 +45,7 @@ julia> img = zeros(Float64, (3,3));
 julia> img[2,:] = 0.5;
 julia> img[:,2] = 0.6;
 julia> seg = fast_scanning(img, 0.2);
-julia> seg.image_indexmap
+julia> labels_map(seg)
 3×3 Array{Int64,2}:
  1  4  5
  4  4  4

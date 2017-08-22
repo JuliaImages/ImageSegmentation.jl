@@ -20,6 +20,27 @@ struct ImageEdge
     weight::Float64
 end
 
+# TODO: add methods via dispatch for accessing fields of `FuzzyCMeansResult`
+# Accessor functions
+"Returns an array containing the assigned labels"
+labels_map(seg::SegmentedImage) = seg.image_indexmap
+
+"Returns the list of assigned labels"
+segment_labels(seg::SegmentedImage) = seg.segment_labels
+
+"Returns the count of pixels that are assigned label `l`"
+segment_pixel_count(seg::SegmentedImage, l::Int) = seg.segment_pixel_count[l]
+segment_pixel_count(seg::SegmentedImage) = seg.segment_pixel_count
+
+"Returns the mean intensity of label `l`"
+segment_mean(seg::SegmentedImage, l::Int) = seg.segment_means[l]
+segment_mean(seg::SegmentedImage) = seg.segment_means
+
+# Dispatch on show
+function show(io::IO, seg::SegmentedImage)
+    print(io, "Segmented Image with:\n\t labels map: ", summary(labels_map(seg)), "\n\t number of labels: ", length(segment_labels(seg)))
+end
+
 """
     G, vert_map = region_adjacency_graph(seg, weight_fn)
 
