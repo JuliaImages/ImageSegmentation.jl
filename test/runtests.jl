@@ -6,3 +6,5 @@ include("felzenszwalb.jl")
 include("fast_scanning.jl")
 include("watershed.jl")
 include("region_merging.jl")
+include("meanshift.jl")
+
