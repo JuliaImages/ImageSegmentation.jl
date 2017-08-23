@@ -3,7 +3,7 @@ __precompile__()
 module ImageSegmentation
 
 using Images, DataStructures, StaticArrays, ImageFiltering, LightGraphs, SimpleWeightedGraphs, RegionTrees, Distances, StaticArrays, Clustering
-import Clustering: fuzzy_cmeans
+import Clustering: kmeans, fuzzy_cmeans
 
 # For efficient hashing of CartesianIndex
 if !isdefined(Base.IteratorsMD, :cartindexhash_seed)
@@ -24,7 +24,7 @@ include("fast_scanning.jl")
 include("watershed.jl")
 include("region_merging.jl")
 include("meanshift.jl")
-include("fuzzy_cmeans.jl")
+include("clustering.jl")
 
 export
     # methods
@@ -41,7 +41,9 @@ export
     region_tree,
     region_splitting,
     meanshift,
+    kmeans,
     fuzzy_cmeans,
+    
     # types
     SegmentedImage,
     ImageEdge
