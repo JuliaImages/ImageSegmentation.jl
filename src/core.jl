@@ -22,10 +22,18 @@ end
 
 # TODO: add methods via dispatch for accessing fields of `FuzzyCMeansResult`
 # Accessor functions
-"Returns an array containing the assigned labels"
+"""
+    img_labeled = labels_map(seg)
+
+Return an array containing the label assigned to each pixel.
+"""
 labels_map(seg::SegmentedImage) = seg.image_indexmap
 
-"Returns the list of assigned labels"
+"""
+    labels = segment_labels(seg)
+
+Returns the list of assigned labels
+"""
 segment_labels(seg::SegmentedImage) = seg.segment_labels
 
 """
