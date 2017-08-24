@@ -1,5 +1,18 @@
 @testset "core" begin
 
+  # Accessor functions
+  img = fill(1.0, (4,4))
+  img[1:2,1:2] = 2.0
+  img[1:2,3:4] = 3.0
+  seg = fast_scanning(img, 0.5)
+
+  @test labels_map(seg) == seg.image_indexmap
+  @test segment_labels(seg) == seg.segment_labels
+  @test segment_mean(seg) == seg.segment_means
+  @test all([segment_mean(seg, i) == seg.segment_means[i] for i in keys(seg.segment_means)])
+  @test segment_pixel_count(seg) == seg.segment_pixel_count
+  @test all([segment_pixel_count(seg, i) == seg.segment_pixel_count[i] for i in keys(seg.segment_pixel_count)])
+
   # RAG
   img = fill(1.0, (10,10))
   img[:, 5:10] = 2.0

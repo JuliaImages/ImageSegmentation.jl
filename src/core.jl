@@ -28,11 +28,21 @@ labels_map(seg::SegmentedImage) = seg.image_indexmap
 "Returns the list of assigned labels"
 segment_labels(seg::SegmentedImage) = seg.segment_labels
 
-"Returns the count of pixels that are assigned label `l`"
+"""
+    c = segment_pixel_count(seg, l)
+
+Returns the count of pixels that are assigned label `l`. If no label is
+supplied, it returns a Dict(label=>pixel_count) of all the labels.
+"""
 segment_pixel_count(seg::SegmentedImage, l::Int) = seg.segment_pixel_count[l]
 segment_pixel_count(seg::SegmentedImage) = seg.segment_pixel_count
 
-"Returns the mean intensity of label `l`"
+"""
+    m = segment_mean(seg, l)
+
+Returns the mean intensity of label `l`. If no label is supplied, it returns
+a Dict(label=>mean) of all the labels.
+"""
 segment_mean(seg::SegmentedImage, l::Int) = seg.segment_means[l]
 segment_mean(seg::SegmentedImage) = seg.segment_means
 
