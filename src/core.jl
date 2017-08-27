@@ -36,6 +36,8 @@ Returns the list of assigned labels
 """
 segment_labels(seg::SegmentedImage) = seg.segment_labels
 
+segment_labels(r::FuzzyCMeansResult) = collect(1:size(r.centers)[2])
+
 """
     c = segment_pixel_count(seg, l)
 
@@ -45,6 +47,9 @@ supplied, it returns a Dict(label=>pixel_count) of all the labels.
 segment_pixel_count(seg::SegmentedImage, l::Int) = seg.segment_pixel_count[l]
 segment_pixel_count(seg::SegmentedImage) = seg.segment_pixel_count
 
+segment_pixel_count(r::FuzzyCMeansResult, l::Int) = size(r.weights)[1]
+segment_pixel_count(r::FuzzyCMeansResult) = Dict([(i, segment_pixel_count(r,i)) for i in segment_labels(r)])
+
 """
     m = segment_mean(seg, l)
 
@@ -53,6 +58,9 @@ a Dict(label=>mean) of all the labels.
 """
 segment_mean(seg::SegmentedImage, l::Int) = seg.segment_means[l]
 segment_mean(seg::SegmentedImage) = seg.segment_means
+
+segment_mean(r::FuzzyCMeansResult, l::Int) = r.centers[:,l]
+segment_mean(r::FuzzyCMeansResult) = Dict([(i, segment_mean(r,i)) for i in segment_labels(r)])
 
 # Dispatch on show
 function show(io::IO, seg::SegmentedImage)
