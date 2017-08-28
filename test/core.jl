@@ -13,6 +13,15 @@
   @test segment_pixel_count(seg) == seg.segment_pixel_count
   @test all([segment_pixel_count(seg, i) == seg.segment_pixel_count[i] for i in keys(seg.segment_pixel_count)])
 
+  img = [1 1.1 0.9 10 10.2 9.8; 1 1 1.1 4 3.8 4]
+  r = fuzzy_cmeans(img, 2, 2.0)
+
+  @test segment_labels(r) == [1,2]
+  @test segment_mean(r, 1) == r.centers[:,1]
+  @test segment_mean(r) == Dict(1=>r.centers[:,1], 2=>r.centers[:,2])
+  @test all([segment_pixel_count(r,i) == 6 for i in 1:2])
+  @test segment_pixel_count(r) == Dict(1=>6, 2=>6)
+
   # RAG
   img = fill(1.0, (10,10))
   img[:, 5:10] = 2.0
