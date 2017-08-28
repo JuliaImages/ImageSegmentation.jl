@@ -20,6 +20,53 @@ struct ImageEdge
     weight::Float64
 end
 
+# TODO: add methods via dispatch for accessing fields of `FuzzyCMeansResult`
+# Accessor functions
+"""
+    img_labeled = labels_map(seg)
+
+Return an array containing the label assigned to each pixel.
+"""
+labels_map(seg::SegmentedImage) = seg.image_indexmap
+
+"""
+    labels = segment_labels(seg)
+
+Returns the list of assigned labels
+"""
+segment_labels(seg::SegmentedImage) = seg.segment_labels
+
+segment_labels(r::FuzzyCMeansResult) = collect(1:size(r.centers)[2])
+
+"""
+    c = segment_pixel_count(seg, l)
+
+Returns the count of pixels that are assigned label `l`. If no label is
+supplied, it returns a Dict(label=>pixel_count) of all the labels.
+"""
+segment_pixel_count(seg::SegmentedImage, l::Int) = seg.segment_pixel_count[l]
+segment_pixel_count(seg::SegmentedImage) = seg.segment_pixel_count
+
+segment_pixel_count(r::FuzzyCMeansResult, l::Int) = size(r.weights)[1]
+segment_pixel_count(r::FuzzyCMeansResult) = Dict([(i, segment_pixel_count(r,i)) for i in segment_labels(r)])
+
+"""
+    m = segment_mean(seg, l)
+
+Returns the mean intensity of label `l`. If no label is supplied, it returns
+a Dict(label=>mean) of all the labels.
+"""
+segment_mean(seg::SegmentedImage, l::Int) = seg.segment_means[l]
+segment_mean(seg::SegmentedImage) = seg.segment_means
+
+segment_mean(r::FuzzyCMeansResult, l::Int) = r.centers[:,l]
+segment_mean(r::FuzzyCMeansResult) = Dict([(i, segment_mean(r,i)) for i in segment_labels(r)])
+
+# Dispatch on show
+function show(io::IO, seg::SegmentedImage)
+    print(io, "Segmented Image with:\n\t labels map: ", summary(labels_map(seg)), "\n\t number of labels: ", length(segment_labels(seg)))
+end
+
 """
     G, vert_map = region_adjacency_graph(seg, weight_fn)
 

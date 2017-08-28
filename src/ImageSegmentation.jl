@@ -2,6 +2,8 @@ __precompile__()
 
 module ImageSegmentation
 
+import Base: show
+
 using Images, DataStructures, StaticArrays, ImageFiltering, LightGraphs, SimpleWeightedGraphs, RegionTrees, Distances, StaticArrays, Clustering
 import Clustering: kmeans, fuzzy_cmeans
 
@@ -27,6 +29,12 @@ include("meanshift.jl")
 include("clustering.jl")
 
 export
+    #accessor methods
+    labels_map,
+    segment_labels,
+    segment_pixel_count,
+    segment_mean,
+
     # methods
     seeded_region_growing,
     unseeded_region_growing,
