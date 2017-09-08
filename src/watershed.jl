@@ -29,7 +29,7 @@ function watershed(img::AbstractArray{T, N}, markers::AbstractArray{S,N}) where 
     end
 
     segments = copy(markers)
-    pq = PriorityQueue(CartesianIndex{N}, PixelKey{T}, Base.Order.Forward)
+    pq = PriorityQueue{CartesianIndex{N}, PixelKey{T}}()
     time_step = 0
 
     R = CartesianRange(indices(img))

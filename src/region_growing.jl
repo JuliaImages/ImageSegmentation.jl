@@ -75,7 +75,7 @@ function seeded_region_growing(img::AbstractArray{CT,N}, seeds::AbstractVector{T
     # Required data structures
     result              =   similar(dims->fill(-1,dims), indices(img))              # Array to store labels
     nhq                 =   Queue(CartesianIndex{N}, _QUEUE_SZ)                     # Neighbours holding queue
-    pq                  =   PriorityQueue(Queue{CartesianIndex{N}}, Float64)        # Priority Queue to hold the queues of same δ value
+    pq                  =   PriorityQueue{Queue{CartesianIndex{N}}, Float64}()      # Priority Queue to hold the queues of same δ value
     qdict               =   Dict{Float64, Queue{CartesianIndex{N}}}()               # A map to get a reference to queue using the δ value
     labelsq             =   Queue(Int, _QUEUE_SZ)                                   # Queue to hold labels
     holdingq            =   Queue(CartesianIndex{N}, _QUEUE_SZ)                     # Queue to hold points corresponding to the labels in `labelsq`
@@ -261,7 +261,7 @@ function unseeded_region_growing(img::AbstractArray{CT,N}, threshold::Real, neig
 
     # Required data structures
     result                  =   similar(dims->fill(-1,dims), indices(img))      # Array to store labels
-    neighbours              =   PriorityQueue(CartesianIndex{N}, Float64)       # Priority Queue containing boundary pixels with δ as the priority
+    neighbours              =   PriorityQueue{CartesianIndex{N},Float64}()      # Priority Queue containing boundary pixels with δ as the priority
     region_means            =   Dict{Int, Images.accum(CT)}()                   # A map containing (label, mean) pairs
     region_pix_count        =   Dict{Int, Int}()                                # A map containing (label, pixel_count) pairs
     labels                  =   Vector{Int}()                                   # Vector containing assigned labels
