@@ -11,7 +11,7 @@ isless(a::PixelKey{T}, b::PixelKey{T}) where {T} = (a.val < b.val) || (a.val == 
 segments                = watershed(img, markers)
 ``` 
 Segments the image using watershed transform. Each basin formed by watershed transform corresponds to a segment.
-If you are using image local minimas as markers, consider using hmin_transform to avoid oversegmentation.
+If you are using image local minimas as markers, consider using [`hmin_transform`](@ref) to avoid oversegmentation.
     
 Parameters:  
 -    img            = input grayscale image
