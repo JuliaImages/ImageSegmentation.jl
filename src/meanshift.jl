@@ -10,7 +10,7 @@ Parameters:
 -    iter/eps                       = stopping criterion for meanshift procedure. The algorithm stops after iter iterations or if kernel center moves less than eps distance in an update step, whichever comes first.
 """
 
-function meanshift{CT}(img::Array{CT, 2}, spatial_radius::Real, range_radius::Real; iter::Int = 50, eps::Real = 0.01)
+function meanshift(img::Array{CT, 2}, spatial_radius::Real, range_radius::Real; iter::Int = 50, eps::Real = 0.01) where CT
 
     rows, cols = size(img)
     rowbins = Int(floor(rows/spatial_radius))
