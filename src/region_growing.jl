@@ -65,7 +65,7 @@ end
 function seeded_region_growing(img::AbstractArray{CT,N}, seeds::AbstractVector{Tuple{CartesianIndex{N},Int}},
     neighbourhood::Function, diff_fn::Function = default_diff_fn) where {CT<:Colorant, N}
 
-    const _QUEUE_SZ = 10
+    _QUEUE_SZ = 10
 
     # Check if labels are positive integers
     for seed in seeds
