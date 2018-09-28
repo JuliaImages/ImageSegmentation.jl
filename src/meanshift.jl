@@ -1,15 +1,14 @@
 """
 ```
 segments                = meanshift(img, spatial_radius, range_radius; iter=50, eps=0.01))
-``` 
+```
 Segments the image using meanshift clustering. Returns a `SegmentedImage`.
-    
-Parameters:  
+
+Parameters:
 -    img                            = input grayscale image
 -    spatial_radius/range_radius    = bandwidth parameters of truncated normal kernel. Controlling the size of the kernel determines the resolution of the mode detection.
 -    iter/eps                       = stopping criterion for meanshift procedure. The algorithm stops after iter iterations or if kernel center moves less than eps distance in an update step, whichever comes first.
 """
-
 function meanshift(img::Array{CT, 2}, spatial_radius::Real, range_radius::Real; iter::Int = 50, eps::Real = 0.01) where CT
 
     rows, cols = size(img)
@@ -21,12 +20,12 @@ function meanshift(img::Array{CT, 2}, spatial_radius::Real, range_radius::Real; 
     rowbin(x)::Int = min(floor(x/spatial_radius) +1, rowbins)
     colbin(x)::Int = min(floor(x/spatial_radius) +1, colbins)
 
-    buckets = Array{Vector{CartesianIndex{2}}}(rowbins, colbins, colorbins)
-    for i in CartesianRange(size(buckets))
-        buckets[i]=Array{CartesianIndex{2}}(0)
+    buckets = Array{Vector{CartesianIndex{2}}}(undef, rowbins, colbins, colorbins)
+    for i in CartesianIndices(size(buckets))
+        buckets[i]=Array{CartesianIndex{2}}(undef, 0)
     end
 
-    for i in CartesianRange(size(img))
+    for i in CartesianIndices(size(img))
         push!( buckets[rowbin(i[1]), colbin(i[2]), colorbin(img[i])], i)
     end
 
@@ -38,11 +37,11 @@ function meanshift(img::Array{CT, 2}, spatial_radius::Real, range_radius::Real; 
         den = 0.0
         num = SVector(0.0, 0.0, 0.0)
 
-        R = CartesianRange(size(buckets))
+        R = CartesianIndices(size(buckets))
         I1, Iend = first(R), last(R)
         I = CartesianIndex(rowbin(pt[1]), colbin(pt[2]), colorbin(pt[3]))
 
-        for J in CartesianRange(max(I1, I-1), min(Iend, I+1))
+        for J in CartesianIndices(_colon(max(I1, I-one(I)), min(Iend, I+one(I))))
             for point in buckets[J]
                 if dist2(pt, SVector(point[1], point[2], img[point])) <= 1
                     num += SVector(point[1], point[2], img[point])
@@ -54,9 +53,9 @@ function meanshift(img::Array{CT, 2}, spatial_radius::Real, range_radius::Real; 
         return den<=0 ? pt : num/den
     end
 
-    modes = Array{Float64}(3, rows*cols)
+    modes = Array{Float64}(undef, 3, rows*cols)
 
-    for i in CartesianRange(size(img))
+    for i in CartesianIndices(size(img))
         pt::SVector{3, Float64} = SVector(i[1], i[2], img[i])
         for j in 1:iter
             nextpt = neighborhood_mean(pt)

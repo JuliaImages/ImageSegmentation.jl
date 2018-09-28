@@ -7,20 +7,20 @@ makert(ind::Int, start_ind::NTuple, mid_ind::NTuple, end_ind::NTuple) = ()
 
 function region_tree!(rtree::Cell, img::AbstractArray{T,N}, homogeneous::Function) where T<:Union{Colorant, Real} where N
 
-    if *(length.(indices(img))...) == 0
+    if *(length.(axes(img))...) == 0
         return rtree
     end
 
     if homogeneous(img)
         m = mean(img)
-        c = length(linearindices(img))
+        c = length(img)
         rtree.data = ((m,c))
         return rtree
     end
 
     split!(rtree)
-    start_ind = first(CartesianRange(indices(img))).I
-    end_ind = last(CartesianRange(indices(img))).I
+    start_ind = first(CartesianIndices(axes(img))).I
+    end_ind = last(CartesianIndices(axes(img))).I
     mid_ind = (start_ind.+end_ind).÷2
 
     for i in 0:2^N-1
@@ -49,18 +49,17 @@ julia> function homogeneous(img)
            min, max = extrema(img)
            max - min < 0.2
        end
-       
+
 julia> t = region_tree(img, homogeneous);
 ```
 
 """
-
 region_tree(img::AbstractArray{T,N}, homogeneous::Function) where {T<:Union{Colorant, Real},N} =
-    region_tree!(Cell(SVector(first(CartesianRange(indices(img))).I), SVector(length.(indices(img))), (0.,0)), img, homogeneous)
+    region_tree!(Cell(SVector(first(CartesianIndices(axes(img))).I), SVector(length.(axes(img))), (0.,0)), img, homogeneous)
 
 function fill_recursive!(seg::SegmentedImage, image_indexmap::AbstractArray{Int,N}, lc::Int, rtree::Cell)::Int where N
 
-    if *(length.(indices(image_indexmap))...) == 0
+    if *(length.(axes(image_indexmap))...) == 0
         return lc
     end
 
@@ -72,12 +71,12 @@ function fill_recursive!(seg::SegmentedImage, image_indexmap::AbstractArray{Int,
         return lc+1
     end
 
-    start_ind = first(CartesianRange(indices(image_indexmap))).I
-    end_ind = last(CartesianRange(indices(image_indexmap))).I
+    start_ind = first(CartesianIndices(axes(image_indexmap))).I
+    end_ind = last(CartesianIndices(axes(image_indexmap))).I
     mid_ind = (start_ind.+end_ind).÷2
 
-    bv = MVector{N,Bool}()
-    rv = MVector{N,UnitRange{Int64}}()
+    bv = MVector{N,Bool}(undef)
+    rv = MVector{N,UnitRange{Int64}}(undef)
     for i in 0:2^N-1
         bt = makebt(i, start_ind...)
         rt = makert(1, start_ind, mid_ind, end_ind, bt...)
@@ -109,7 +108,6 @@ julia> seg = region_splitting(img, homogeneous);
 ```
 
 """
-
 function region_splitting(img::AbstractArray{T,N}, homogeneous::Function) where T<:Union{Colorant, Real} where N
     rtree = region_tree(img, homogeneous)
     seg = SegmentedImage(similar(img, Int), Vector{Int}(), Dict{Int, Images.accum(T)}(), Dict{Int, Int}())

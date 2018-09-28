@@ -1,14 +1,14 @@
-sharpness(img::AbstractArray{CT,N}) where {CT<:Images.NumberLike,N} = var(imfilter(img, Kernel.Laplacian(ntuple(i->true, Val{N}))))
+sharpness(img::AbstractArray{CT,N}) where {CT<:Images.NumberLike,N} = var(imfilter(img, Kernel.Laplacian(ntuple(i->true, Val(N)))))
 
 function adaptive_thres(img::AbstractArray{CT,N}, block::NTuple{N,Int}) where {CT<:Images.NumberLike,N}
     threshold = zeros(Float64, block)
-    block_length = CartesianIndex(ntuple(i->ceil(Int,length(indices(img,i))/block[i]),Val{N}))
+    block_length = CartesianIndex(ntuple(i->ceil(Int,length(axes(img,i))/block[i]),Val(N)))
     net_s = sharpness(img)
     net_var = var(img)
-    net_end = last(CartesianRange(indices(img)))
-    for i in CartesianRange(block)
-        si = CartesianIndex(ntuple(j->(i[j]-1)*block_length[j]+1,Val{N}))
-        ei = min(si + block_length - 1, net_end)
+    net_end = last(CartesianIndices(axes(img)))
+    for i in CartesianIndices(block)
+        si = CartesianIndex(ntuple(j->(i[j]-1)*block_length[j]+1,Val(N)))
+        ei = min(si + block_length - one(si), net_end)
         wi = view(img, map((i,j)->i:j, si.I, ei.I)...)
         threshold[i] = 0.02 + min(sharpness(wi)/net_s*0.04,0.1) + min(var(wi)/net_var*0.04,0.1)
     end
@@ -16,12 +16,12 @@ function adaptive_thres(img::AbstractArray{CT,N}, block::NTuple{N,Int}) where {C
 end
 
 getscalar(A::AbstractArray{T,N}, i::CartesianIndex{N}, block_length::CartesianIndex{N}) where {T<:Real,N} =
-    A[CartesianIndex(ntuple(j->(i[j]-1)÷block_length[j]+1, Val{N}))]
+    A[CartesianIndex(ntuple(j->(i[j]-1)÷block_length[j]+1, Val(N)))]
 
 getscalar(a::Real, i...) = a
 
-fast_scanning(img::AbstractArray{CT,N}, block::NTuple{N,Int} =
-ntuple(i->4,Val{N})) where {CT<:Images.NumberLike,N} = fast_scanning(img, adaptive_thres(img, block))
+fast_scanning(img::AbstractArray{CT,N}, block::NTuple{N,Int} = ntuple(i->4,Val(N))) where {CT<:Images.NumberLike,N} =
+    fast_scanning(img, adaptive_thres(img, block))
 
 """
     seg_img = fast_scanning(img, threshold, [diff_fn])
@@ -30,7 +30,7 @@ Segments the N-D image using a fast scanning algorithm and returns a
 [`SegmentedImage`](@ref) containing information about the segments.
 
 # Arguments:
-* `img`         : N-D image to be segmented (arbitrary indices are allowed)
+* `img`         : N-D image to be segmented (arbitrary axes are allowed)
 * `threshold`   : Upper bound of the difference measure (δ) for considering
                   pixel into same segment; an `AbstractArray` can be passed
                   having same number of dimensions as that of `img` for adaptive
@@ -64,20 +64,20 @@ function fast_scanning(img::AbstractArray{CT,N}, threshold::Union{AbstractArray,
     end
 
     # Neighbourhood function
-    _diagmN = diagm([1 for i in 1:N])
-    half_region::NTuple{N,CartesianIndex{N}} = ntuple(i-> CartesianIndex{N}(ntuple(j->_diagmN[j,i], Val{N})), Val{N})
-    neighbourhood(x) = ntuple(i-> x-half_region[i], Val{N})
+    _diagmN = Diagonal([1 for i in 1:N])
+    half_region::NTuple{N,CartesianIndex{N}} = ntuple(i-> CartesianIndex{N}(ntuple(j->_diagmN[j,i], Val(N))), Val(N))
+    neighbourhood(x) = ntuple(i-> x-half_region[i], Val(N))
 
     # Required data structures
-    result              =   similar(dims->fill(-1,dims), indices(img))      # Array to store labels
+    result              =   fill(-1, axes(img))                             # Array to store labels
     region_means        =   Dict{Int, Images.accum(CT)}()                   # A map conatining (label, mean) pairs
     region_pix_count    =   Dict{Int, Int}()                                # A map conatining (label, count) pairs
     temp_labels         =   IntDisjointSets(0)                              # Disjoint set to map labels to their equivalence class
-    v_neigh             =   MVector{N,Int}()                                # MVector to store valid neighbours
+    v_neigh             =   MVector{N,Int}(undef)                           # MVector to store valid neighbours
 
-    block_length = CartesianIndex(ntuple(i->ceil(Int,length(indices(img,i))/size(threshold,i)),Val{N}))
+    block_length = CartesianIndex(ntuple(i->ceil(Int,length(axes(img,i))/size(threshold,i)), Val(N)))
 
-    for point in CartesianRange(indices(img))
+    for point in CartesianIndices(axes(img))
         sz = 0
         same_label = true
         prev_label = 0
@@ -132,7 +132,7 @@ function fast_scanning(img::AbstractArray{CT,N}, threshold::Union{AbstractArray,
         end
     end
 
-    for point in CartesianRange(indices(img))
+    for point in CartesianIndices(axes(img))
         result[point] = find_root(temp_labels, result[point])
     end
 

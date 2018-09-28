@@ -68,11 +68,11 @@ function felzenszwalb(edges::Array{ImageEdge}, num_vertices::Int, k::Real, min_s
 
     num_sets = length(segments)
     segments2index = Dict{Int, Int}()
-    for i in 1:num_sets
-        segments2index[segments[i]]=i
+    for (i, s) in enumerate(segments)
+        segments2index[s] = i
     end
 
-    index_map = Array{Int}(num_vertices)
+    index_map = Array{Int}(undef, num_vertices)
     for i in 1:num_vertices
         index_map[i] = segments2index[find_root(G, i)]
     end
@@ -88,13 +88,13 @@ function felzenszwalb(img::AbstractArray{T, 2}, k::Real, min_size::Int = 0) wher
     rows, cols = size(img)
     num_vertices = rows*cols
     num_edges = 4*rows*cols - 3*rows - 3*cols + 2
-    edges = Array{ImageEdge}(num_edges)
+    edges = Array{ImageEdge}(undef, num_edges)
 
-    R = CartesianRange(size(img))
+    R = CartesianIndices(size(img))
     I1, Iend = first(R), last(R)
     num = 1
     for I in R
-        for J in CartesianRange(max(I1, I-I1), min(Iend, I+I1))
+        for J in CartesianIndices(_colon(max(I1, I-I1), min(Iend, I+I1)))
             if I >= J
                 continue
             end
@@ -110,8 +110,8 @@ function felzenszwalb(img::AbstractArray{T, 2}, k::Real, min_size::Int = 0) wher
     region_means        = Dict{Int, meantype(T)}()
     region_pix_count    = Dict{Int, Int}()
 
-    for j in indices(img, 2)
-        for i in indices(img, 1)
+    for j in axes(img, 2)
+        for i in axes(img, 1)
             result[i, j] = index_map[(j-1)*rows+i]
             region_pix_count[result[i,j]] = get(region_pix_count, result[i, j], 0) + 1
             region_means[result[i,j]] = get(region_means, result[i,j], zero(meantype(T))) + (img[i, j] - get(region_means, result[i,j], zero(meantype(T))))/region_pix_count[result[i,j]]

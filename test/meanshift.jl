@@ -1,9 +1,9 @@
 @testset "MeanShift Segmentation" begin
 
     img = zeros(Gray{N0f8}, 10, 10)
-    img[2:3, 2:3] = 0.2
+    img[2:3, 2:3] .= 0.2
     img[2, 8] = 0.5
-    img[5:6, 5:6] = 0.8
+    img[5:6, 5:6] .= 0.8
     T = Gray{N0f8}
 
     result = meanshift(img, 8, 7/255)

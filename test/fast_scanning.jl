@@ -1,15 +1,15 @@
 @testset "Fast scanning" begin
   # 2-D array
   img = zeros(Float64, 9, 9)
-  img[4:6,:] = 10
-  img[:,4:6] = 11
+  img[4:6,:] .= 10
+  img[:,4:6] .= 11
 
   seg = fast_scanning(img, 2)
   expected = fill(4,(9,9))
-  expected[1:3,1:3] = 1
-  expected[1:3,7:9] = 5
-  expected[7:9,1:3] = 3
-  expected[7:9,7:9] = 6
+  expected[1:3,1:3] .= 1
+  expected[1:3,7:9] .= 5
+  expected[7:9,1:3] .= 3
+  expected[7:9,7:9] .= 6
   expected_labels = [1,3,4,5,6]
   expected_means = Dict(1=>0.0,3=>0.0,4=>10.6,5=>0.0,6=>0.0)
   expected_count = Dict(1=>9,3=>9,4=>45,5=>9,6=>9)
@@ -34,14 +34,15 @@
 
   # 3-D array
   img = zeros(Float64, (7,7,7))
-  img[3:5,2:6,1:3] = 2
-  img[1:4,5:7,2:6] = 3
-  img[3:5,3:5,3:5] = 8
+  img[3:5,2:6,1:3] .= 2
+  img[1:4,5:7,2:6] .= 3
+  img[3:5,3:5,3:5] .= 8
 
   seg = fast_scanning(img, 1.5)
   expected = fill(5, (7,7,7))
-  expected[3:5,2:6,1:3] = expected[1:4,5:7,2:6] = 3
-  expected[3:5,3:5,3:5] = 4
+  expected[3:5,2:6,1:3] .= 3
+  expected[1:4,5:7,2:6] .= 3
+  expected[3:5,3:5,3:5] .= 4
   expected_labels = [3,4,5]
   expected_means = Dict(3=>222/84,4=>8.0,5=>0.0)
   expected_count = Dict(3=>84,4=>27,5=>232)
@@ -54,13 +55,13 @@
 
   # custom diff_fn
   img = zeros(RGB{N0f8}, (3,3))
-  img[2,:] = RGB{N0f8}(0.2, 0.4, 0.4)
-  img[3,:] = RGB{N0f8}(0.2, 1.0, 1.0)
+  img[2,:] .= RGB{N0f8}(0.2, 0.4, 0.4)
+  img[3,:] .= RGB{N0f8}(0.2, 1.0, 1.0)
 
   seg = fast_scanning(img, 0.22)
   expected = ones(Int, (3,3))
-  expected[2,:] = 2
-  expected[3,:] = 3
+  expected[2,:] .= 2
+  expected[3,:] .= 3
   expected_labels = [1,2,3]
   expected_means = Dict(1=>RGB{Float64}(0.0,0.0,0.0),2=>RGB{Float64}(0.2,0.4,0.4),3=>RGB{Float64}(0.2,1.0,1.0))
   expected_count = Dict(1=>3,2=>3,3=>3)

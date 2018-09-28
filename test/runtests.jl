@@ -1,4 +1,4 @@
-using ImageSegmentation, Images, Base.Test, SimpleWeightedGraphs, LightGraphs, StaticArrays, RegionTrees
+using ImageSegmentation, Images, Test, SimpleWeightedGraphs, LightGraphs, StaticArrays, RegionTrees
 
 include("core.jl")
 include("region_growing.jl")
