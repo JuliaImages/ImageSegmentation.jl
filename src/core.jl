@@ -81,7 +81,7 @@ Returns a real number corresponding to the weight of the edge between label1 and
 function region_adjacency_graph(s::SegmentedImage, weight_fn::Function)
 
     function neighbor_regions!(n::Set{Int}, visited::AbstractArray, s::SegmentedImage, I::CartesianIndex)
-        R = CartesianRange(indices(s.image_indexmap))
+        R = CartesianIndices(axes(s.image_indexmap))
         I1 = one(CartesianIndex{ndims(visited)})
         Ibegin, Iend = first(R), last(R)
         t = Vector{CartesianIndex{ndims(visited)}}()
@@ -90,7 +90,7 @@ function region_adjacency_graph(s::SegmentedImage, weight_fn::Function)
         while !isempty(t)
             temp = pop!(t)
             visited[temp] = true
-            for J in CartesianRange(max(Ibegin, temp-I1), min(Iend, temp+I1))
+            for J in CartesianIndices(_colon(max(Ibegin, temp-I1), min(Iend, temp+I1)))
                 if s.image_indexmap[temp] != s.image_indexmap[J]
                     push!(n,s.image_indexmap[J])
                 elseif !visited[J]
@@ -101,7 +101,7 @@ function region_adjacency_graph(s::SegmentedImage, weight_fn::Function)
         n
     end
 
-    visited  = similar(dims->fill(false,dims), indices(s.image_indexmap))    # Array to mark the pixels that are already visited
+    visited  = fill(false, axes(s.image_indexmap))                           # Array to mark the pixels that are already visited
     G        = SimpleWeightedGraph()                                         # The region_adjacency_graph
     vert_map = Dict{Int,Int}()                                               # Map that stores (label, vertex) pairs
 
@@ -114,7 +114,7 @@ function region_adjacency_graph(s::SegmentedImage, weight_fn::Function)
     end
 
     # add edges to graph
-    for p in CartesianRange(indices(s.image_indexmap))
+    for p in CartesianIndices(axes(s.image_indexmap))
         if !visited[p]
             n = Set{Int}()
             neighbor_regions!(n, visited, s, p)
@@ -182,7 +182,7 @@ function rem_segment!(s::SegmentedImage, label::Int, diff_fn::Function)
     s.segment_pixel_count[minc_label] += s.segment_pixel_count[label]
     s.segment_means[minc_label] += (s.segment_means[label] - s.segment_means[minc_label])*s.segment_pixel_count[label]/s.segment_pixel_count[minc_label]
 
-    for i in CartesianRange(indices(s.image_indexmap))
+    for i in CartesianIndices(axes(s.image_indexmap))
         s.image_indexmap[i] = s.segment_labels[vert_map[s.image_indexmap[i]]]
     end
 
@@ -216,7 +216,6 @@ Returns true if label `label` is to be removed otherwise false.
 A difference measure between label to be removed and its neighbors. `isless` must be
 defined for objects of the type of `d`.
 """
-
 function prune_segments(s::SegmentedImage, is_rem::Function, diff_fn::Function)
 
     G, vert_map = region_adjacency_graph(s, (i,j)->1)
@@ -244,7 +243,7 @@ function prune_segments(s::SegmentedImage, is_rem::Function, diff_fn::Function)
 
     result              =   similar(s.image_indexmap)
     labels              =   Vector{Int}()
-    region_means        =   similar(s.segment_means)
+    region_means        =   empty(s.segment_means)
     region_pix_count    =   Dict{Int, Int}()
 
     m_type = eltype(values(region_means))
@@ -253,7 +252,7 @@ function prune_segments(s::SegmentedImage, is_rem::Function, diff_fn::Function)
         push!(labels, i)
     end
 
-    for p in CartesianRange(indices(result))
+    for p in CartesianIndices(axes(result))
         result[p] = find_root(u, vert_map[s.image_indexmap[p]])
         region_pix_count[result[p]] = get(region_pix_count, result[p], 0) + 1
         region_means[result[p]] = get(region_means, result[p], zero(m_type)) + (s.segment_means[s.image_indexmap[p]] - get(region_means, result[p], zero(m_type)))/(region_pix_count[result[p]])
@@ -261,3 +260,7 @@ function prune_segments(s::SegmentedImage, is_rem::Function, diff_fn::Function)
     SegmentedImage(result, labels, region_means, region_pix_count)
 
 end
+
+# Once Base has colon defined here we can replace this
+_colon(I::CartesianIndex{N}, J::CartesianIndex{N}) where N =
+    map((i,j) -> i:j, Tuple(I), Tuple(J))

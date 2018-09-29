@@ -1,9 +1,9 @@
 @testset "Felzenszwalb" begin
 
     img = zeros(Gray{N0f8}, 10, 10)
-    img[2:3, 2:3] = 0.2
+    img[2:3, 2:3] .= 0.2
     img[2, 8] = 0.5
-    img[5:6, 5:6] = 0.8
+    img[5:6, 5:6] .= 0.8
     T = Gray{N0f8}
 
     result = felzenszwalb(img, 1)
@@ -26,9 +26,9 @@
 
 
     img = zeros(RGB{Float64}, 10, 10)
-    img[2:3, 2:3] = RGB(0.2,0.2,0.2)
+    img[2:3, 2:3] .= RGB(0.2,0.2,0.2)
     img[2, 8] = RGB(0.5,0.5,0.5)
-    img[5:6, 5:6] = RGB(0.8,0.8,0.8)
+    img[5:6, 5:6] .= RGB(0.8,0.8,0.8)
     T = RGB{Float64}
 
     result = felzenszwalb(img, 1, 2)
@@ -50,9 +50,9 @@
 
     # issue 20
     img = falses(10, 10)
-    img[2:3, 2:3] = true
+    img[2:3, 2:3] .= true
     img[2, 8] = true
-    img[5:6, 5:6] = true
+    img[5:6, 5:6] .= true
     T = Bool
 
     result = felzenszwalb(img, 1, 2)

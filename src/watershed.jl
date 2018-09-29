@@ -9,11 +9,11 @@ isless(a::PixelKey{T}, b::PixelKey{T}) where {T} = (a.val < b.val) || (a.val == 
 """
 ```
 segments                = watershed(img, markers)
-``` 
+```
 Segments the image using watershed transform. Each basin formed by watershed transform corresponds to a segment.
 If you are using image local minimas as markers, consider using [`hmin_transform`](@ref) to avoid oversegmentation.
-    
-Parameters:  
+
+Parameters:
 -    img            = input grayscale image
 -    markers        = An array (same size as img) with each region's marker assigned a index starting from 1. Zero means not a marker.
                       If two markers have the same index, their regions will be merged into a single region.
@@ -24,7 +24,7 @@ Parameters:
 """
 function watershed(img::AbstractArray{T, N}, markers::AbstractArray{S,N}) where {T<:Images.NumberLike, S<:Integer, N}
 
-    if indices(img) != indices(markers)
+    if axes(img) != axes(markers)
         error("image size doesn't match marker image size")
     end
 
@@ -32,11 +32,11 @@ function watershed(img::AbstractArray{T, N}, markers::AbstractArray{S,N}) where 
     pq = PriorityQueue{CartesianIndex{N}, PixelKey{T}}()
     time_step = 0
 
-    R = CartesianRange(indices(img))
+    R = CartesianIndices(axes(img))
     Istart, Iend = first(R), last(R)
     for i in R
         if markers[i] > 0
-            for j in CartesianRange(max(Istart,i-1), min(i+1,Iend))
+            for j in CartesianIndices(_colon(max(Istart,i-one(i)), min(i+one(i),Iend)))
                 if segments[j] == 0
                     segments[j] = markers[i]
                     enqueue!(pq, j, PixelKey(img[i], time_step))
@@ -50,7 +50,7 @@ function watershed(img::AbstractArray{T, N}, markers::AbstractArray{S,N}) where 
         current = dequeue!(pq)
         segments_current = segments[current]
         img_current = img[current]
-        for j in CartesianRange(max(Istart,current-1), min(current+1,Iend))
+        for j in CartesianIndices(_colon(max(Istart,current-one(current)), min(current+one(current),Iend)))
             if segments[j] == 0
                 segments[j] = segments_current
                 enqueue!(pq, j, PixelKey(img_current, time_step))
@@ -75,9 +75,9 @@ end
 ```
 out = hmin_transform(img, h)
 ```
-Suppresses all minima in grayscale image whose depth is less than h.  
+Suppresses all minima in grayscale image whose depth is less than h.
 
-H-minima transform is defined as the reconstruction by erosion of (img + h) by img. See Morphological image analysis by Soille pg 170-172.  
+H-minima transform is defined as the reconstruction by erosion of (img + h) by img. See Morphological image analysis by Soille pg 170-172.
 """
 function hmin_transform(img::Array{T, N}, h::Real) where {T<:Images.NumberLike, N}
     out = img.+h
@@ -90,4 +90,3 @@ function hmin_transform(img::Array{T, N}, h::Real) where {T<:Images.NumberLike, 
     end
     return out
 end
-

@@ -1,9 +1,8 @@
-__precompile__()
-
 module ImageSegmentation
 
 import Base: show
 
+using LinearAlgebra, Statistics
 using Images, DataStructures, StaticArrays, ImageFiltering, LightGraphs, SimpleWeightedGraphs, RegionTrees, Distances, StaticArrays, Clustering
 import Clustering: kmeans, fuzzy_cmeans
 
@@ -51,7 +50,7 @@ export
     meanshift,
     kmeans,
     fuzzy_cmeans,
-    
+
     # types
     SegmentedImage,
     ImageEdge

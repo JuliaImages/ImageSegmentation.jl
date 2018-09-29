@@ -2,8 +2,8 @@
 
   # Accessor functions
   img = fill(1.0, (4,4))
-  img[1:2,1:2] = 2.0
-  img[1:2,3:4] = 3.0
+  img[1:2,1:2] .= 2.0
+  img[1:2,3:4] .= 3.0
   seg = fast_scanning(img, 0.5)
 
   @test labels_map(seg) == seg.image_indexmap
@@ -24,7 +24,7 @@
 
   # RAG
   img = fill(1.0, (10,10))
-  img[:, 5:10] = 2.0
+  img[:, 5:10] .= 2.0
   seg = fast_scanning(img, 0.5)
   g, vm = region_adjacency_graph(seg, (i,j)->sum(abs2, seg.segment_means[i]-seg.segment_means[j]))
 
@@ -36,8 +36,8 @@
   @test vm == expectedvm
 
   img = fill(1.0, (10,10))
-  img[3:8,3:8] = 2.0
-  img[5:7,5:7] = 3.0
+  img[3:8,3:8] .= 2.0
+  img[5:7,5:7] .= 3.0
   seg = fast_scanning(img, 0.5)
   g, vm = region_adjacency_graph(seg, (i,j)->1)
 
@@ -51,13 +51,13 @@
 
   # rem_segment
   img = fill(1.0, (10,10))
-  img[1:4,:] = 2.0
-  img[:,5:10] = 4.0
+  img[1:4,:] .= 2.0
+  img[:,5:10] .= 4.0
   seg = fast_scanning(img, 0.5)
   new_seg = rem_segment(seg, 1, (i,j)->(-seg.segment_pixel_count[j]))
 
   expected = fill(3, (10,10))
-  expected[5:10,1:4] = 2
+  expected[5:10,1:4] .= 2
   expected_labels = [2,3]
   expected_means = Dict(2=>1.0, 3=>68/19)
   expected_count = Dict(2=>24, 3=>76)
@@ -71,7 +71,7 @@
   new_seg = rem_segment(seg, 1, (i,j)->sum(abs2, seg.segment_means[i]-seg.segment_means[j]))
 
   expected = fill(3, (10,10))
-  expected[:,1:4] = 2
+  expected[:,1:4] .= 2
   expected_means = Dict(2=>1.4, 3=>4.0)
   expected_count = Dict(2=>40, 3=>60)
 
@@ -93,12 +93,12 @@
   img = fill(1.0, (10,10))
   img[3,3] = 2.0
   img[5,5] = 2.0
-  img[8:9,7:8] = 3.0
+  img[8:9,7:8] .= 3.0
   seg = fast_scanning(img, 0.5)
   new_seg = prune_segments(seg, l->(seg.segment_pixel_count[l] < 2), (i,j)->sum(abs2, seg.segment_means[i]-seg.segment_means[j]))
 
   expected = fill(1, (10,10))
-  expected[8:9,7:8] = 4
+  expected[8:9,7:8] .= 4
   expected_labels = [1,4]
   expected_means = Dict(4=>3.0, 1=>49/48)
   expected_count = Dict(4=>4, 1=>96)
