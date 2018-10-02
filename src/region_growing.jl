@@ -71,6 +71,8 @@ function seeded_region_growing(img::AbstractArray{CT,N}, seeds::AbstractVector{T
         seed[2] > 0 || error("Seed labels need to be positive integers!")
     end
 
+    TM = meantype(CT)
+
     # Required data structures
     result              =   fill(-1, axes(img))                                     # Array to store labels
     nhq                 =   Queue{CartesianIndex{N}}(_QUEUE_SZ)                     # Neighbours holding queue
@@ -78,7 +80,7 @@ function seeded_region_growing(img::AbstractArray{CT,N}, seeds::AbstractVector{T
     qdict               =   Dict{Float64, Queue{CartesianIndex{N}}}()               # A map to get a reference to queue using the δ value
     labelsq             =   Queue{Int}(_QUEUE_SZ)                                   # Queue to hold labels
     holdingq            =   Queue{CartesianIndex{N}}(_QUEUE_SZ)                     # Queue to hold points corresponding to the labels in `labelsq`
-    region_means        =   Dict{Int, Images.accum(CT)}()                           # A map containing (label, mean) pairs
+    region_means        =   Dict{Int, TM}()                                         # A map containing (label, mean) pairs
     region_pix_count    =   Dict{Int, Int}()                                        # A map containing (label, pixel_count) pairs
     labels              =   Vector{Int}()                                           # A vector containing list of labels
 
@@ -86,7 +88,7 @@ function seeded_region_growing(img::AbstractArray{CT,N}, seeds::AbstractVector{T
     for seed in seeds
         result[seed[1]] = seed[2]
         region_pix_count[seed[2]] = get(region_pix_count, seed[2], 0) + 1
-        region_means[seed[2]] = get(region_means, seed[2], zero(Images.accum(CT))) + (img[seed[1]] - get(region_means, seed[2], zero(Images.accum(CT))))/(region_pix_count[seed[2]])
+        region_means[seed[2]] = get(region_means, seed[2], zero(TM)) + (img[seed[1]] - get(region_means, seed[2], zero(TM)))/(region_pix_count[seed[2]])
         if ! (seed[2] in labels)
             push!(labels, seed[2])
         end
@@ -257,11 +259,12 @@ function unseeded_region_growing(img::AbstractArray{CT,N}, threshold::Real,
 end
 
 function unseeded_region_growing(img::AbstractArray{CT,N}, threshold::Real, neighbourhood::Function, diff_fn = default_diff_fn) where {CT<:Colorant,N}
+    TM = meantype(CT)
 
     # Required data structures
     result                  =   fill(-1, axes(img))                             # Array to store labels
     neighbours              =   PriorityQueue{CartesianIndex{N},Float64}()      # Priority Queue containing boundary pixels with δ as the priority
-    region_means            =   Dict{Int, Images.accum(CT)}()                   # A map containing (label, mean) pairs
+    region_means            =   Dict{Int, TM}()                                 # A map containing (label, mean) pairs
     region_pix_count        =   Dict{Int, Int}()                                # A map containing (label, pixel_count) pairs
     labels                  =   Vector{Int}()                                   # Vector containing assigned labels
 
@@ -321,7 +324,7 @@ function unseeded_region_growing(img::AbstractArray{CT,N}, threshold::Real, neig
 
         #Update region_means
         region_pix_count[minlabel] = get(region_pix_count, minlabel, 0) + 1
-        region_means[minlabel] = get(region_means, minlabel, zero(Images.accum(CT))) + (pixelval - get(region_means, minlabel, zero(Images.accum(CT))))/(region_pix_count[minlabel])
+        region_means[minlabel] = get(region_means, minlabel, zero(TM)) + (pixelval - get(region_means, minlabel, zero(TM)))/(region_pix_count[minlabel])
 
         # Enqueue neighbours of `point`
         for p in neighbourhood(point)

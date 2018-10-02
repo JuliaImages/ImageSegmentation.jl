@@ -14,10 +14,11 @@
     @test all(label->(label==result.image_indexmap[2,2]), result.image_indexmap[2:3, 2:3])
     @test all(label->(label==result.image_indexmap[5,5]), result.image_indexmap[5:6, 5:6])
 
-    @test result.segment_means[result.image_indexmap[1,1]] == zero(Images.accum(T))
-    @test result.segment_means[result.image_indexmap[2,2]] == Images.accum(T)(img[2,2])
-    @test result.segment_means[result.image_indexmap[2,8]] == Images.accum(T)(img[2,8])
-    @test result.segment_means[result.image_indexmap[5,5]] == Images.accum(T)(img[5,5])
+    TM = ImageSegmentation.meantype(T)
+    @test result.segment_means[result.image_indexmap[1,1]] == zero(TM)
+    @test result.segment_means[result.image_indexmap[2,2]] == TM(img[2,2])
+    @test result.segment_means[result.image_indexmap[2,8]] == TM(img[2,8])
+    @test result.segment_means[result.image_indexmap[5,5]] == TM(img[5,5])
 
     @test result.segment_pixel_count[result.image_indexmap[1,1]] == 91
     @test result.segment_pixel_count[result.image_indexmap[2,2]] == 4
@@ -30,6 +31,7 @@
     img[2, 8] = RGB(0.5,0.5,0.5)
     img[5:6, 5:6] .= RGB(0.8,0.8,0.8)
     T = RGB{Float64}
+    TM = ImageSegmentation.meantype(T)
 
     result = felzenszwalb(img, 1, 2)
 
@@ -41,8 +43,8 @@
     @test all(label->(label==result.image_indexmap[5,5]), result.image_indexmap[5:6, 5:6])
 
     @test result.segment_means[result.image_indexmap[1,1]] ≈ RGB{Float64}(0.5/92, 0.5/92, 0.5/92)
-    @test result.segment_means[result.image_indexmap[2,2]] == Images.accum(T)(img[2,2])
-    @test result.segment_means[result.image_indexmap[5,5]] == Images.accum(T)(img[5,5])
+    @test result.segment_means[result.image_indexmap[2,2]] == TM(img[2,2])
+    @test result.segment_means[result.image_indexmap[5,5]] == TM(img[5,5])
 
     @test result.segment_pixel_count[result.image_indexmap[1,1]] == 92
     @test result.segment_pixel_count[result.image_indexmap[2,2]] == 4
@@ -54,6 +56,7 @@
     img[2, 8] = true
     img[5:6, 5:6] .= true
     T = Bool
+    TM = ImageSegmentation.meantype(T)
 
     result = felzenszwalb(img, 1, 2)
 
@@ -65,8 +68,8 @@
     @test all(label->(label==result.image_indexmap[5,5]), result.image_indexmap[5:6, 5:6])
 
     @test result.segment_means[result.image_indexmap[1,1]] ≈ 1/92
-    @test result.segment_means[result.image_indexmap[2,2]] == Images.accum(T)(img[2,2])
-    @test result.segment_means[result.image_indexmap[5,5]] == Images.accum(T)(img[5,5])
+    @test result.segment_means[result.image_indexmap[2,2]] == TM(img[2,2])
+    @test result.segment_means[result.image_indexmap[5,5]] == TM(img[5,5])
 
     @test result.segment_pixel_count[result.image_indexmap[1,1]] == 92
     @test result.segment_pixel_count[result.image_indexmap[2,2]] == 4

@@ -69,9 +69,10 @@ function meanshift(img::Array{CT, 2}, spatial_radius::Real, range_radius::Real; 
 
     clusters = dbscan(modes, 1.414)
     num_segments = length(clusters)
+    TM = meantype(CT)
     result              = similar(img, Int)
     labels              = Array(1:num_segments)
-    region_means        = Dict{Int, Images.accum(CT)}()
+    region_means        = Dict{Int, TM}()
     region_pix_count    = Dict{Int, Int}()
 
     cluster_idx = 0
@@ -81,7 +82,7 @@ function meanshift(img::Array{CT, 2}, spatial_radius::Real, range_radius::Real; 
         for index in [cluster.core_indices; cluster.boundary_indices]
             i, j = (index-1)%rows + 1, floor(Int, (index-1)/rows) + 1
             result[i, j] = cluster_idx
-            region_means[cluster_idx] = get(region_means, cluster_idx, zero(Images.accum(CT))) + img[i, j]
+            region_means[cluster_idx] = get(region_means, cluster_idx, zero(TM)) + img[i, j]
         end
         region_means[cluster_idx] /= region_pix_count[cluster_idx]
     end
