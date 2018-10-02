@@ -40,11 +40,15 @@ Segments the N-D image using a fast scanning algorithm and returns a
 
 # Examples:
 
-```jldoctest
+```jldoctest; setup = :(using Images, ImageSegmentation)
 julia> img = zeros(Float64, (3,3));
-julia> img[2,:] = 0.5;
-julia> img[:,2] = 0.6;
+
+julia> img[2,:] .= 0.5;
+
+julia> img[:,2] .= 0.6;
+
 julia> seg = fast_scanning(img, 0.2);
+
 julia> labels_map(seg)
 3×3 Array{Int64,2}:
  1  4  5

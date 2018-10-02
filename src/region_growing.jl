@@ -30,18 +30,21 @@ and returns a [`SegmentedImage`](@ref) containing information about the segments
 
 # Examples
 
-```jldoctest
+```jldoctest; setup = :(using Images, ImageSegmentation)
 julia> img = zeros(Gray{N0f8},4,4);
-julia> img[2:4,2:4] = 1;
+
+julia> img[2:4,2:4] .= 1;
+
 julia> seeds = [(CartesianIndex(3,1),1),(CartesianIndex(2,2),2)];
+
 julia> seg = seeded_region_growing(img, seeds);
+
 julia> labels_map(seg)
 4×4 Array{Int64,2}:
  1  1  1  1
  1  2  2  2
  1  2  2  2
  1  2  2  2
-
 ```
 
 # Citation:
@@ -232,17 +235,19 @@ and returns a [`SegmentedImage`](@ref) containing information about the segments
 
 # Examples
 
-```jldoctest
+```jldoctest; setup = :(using Images, ImageSegmentation)
 julia> img = zeros(Gray{N0f8},4,4);
-julia> img[2:4,2:4] = 1;
+
+julia> img[2:4,2:4] .= 1;
+
 julia> seg = unseeded_region_growing(img, 0.2);
+
 julia> labels_map(seg)
 4×4 Array{Int64,2}:
  1  1  1  1
  1  2  2  2
  1  2  2  2
  1  2  2  2
-
 ```
 
 """
