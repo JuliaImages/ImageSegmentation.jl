@@ -50,7 +50,7 @@ Albert Mehnert, Paul Jackaway (1997), "An improved seeded region growing algorit
 Pattern Recognition Letters 18 (1997), 1065-1071
 """
 function seeded_region_growing(img::AbstractArray{CT,N}, seeds::AbstractVector{Tuple{CartesianIndex{N},Int}},
-    kernel_dim::Union{Vector{Int}, NTuple{N, Int}} = ntuple(i->3,N), diff_fn::Function = default_diff_fn) where {CT<:Colorant, N}
+    kernel_dim::Union{Vector{Int}, NTuple{N, Int}} = ntuple(i->3,N), diff_fn::Function = default_diff_fn) where {CT<:Union{Colorant,Real}, N}
     length(kernel_dim) == N || error("Dimension count of image and kernel_dim do not match")
     for dim in kernel_dim
         dim > 0 || error("Dimensions of the kernel must be positive")
@@ -62,7 +62,7 @@ function seeded_region_growing(img::AbstractArray{CT,N}, seeds::AbstractVector{T
 end
 
 function seeded_region_growing(img::AbstractArray{CT,N}, seeds::AbstractVector{Tuple{CartesianIndex{N},Int}},
-    neighbourhood::Function, diff_fn::Function = default_diff_fn) where {CT<:Colorant, N}
+    neighbourhood::Function, diff_fn::Function = default_diff_fn) where {CT<:Union{Colorant,Real}, N}
 
     _QUEUE_SZ = 10
 

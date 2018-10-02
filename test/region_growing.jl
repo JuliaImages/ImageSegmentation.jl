@@ -73,6 +73,25 @@ of_accum_type(p::Colorant) = Images.accum(typeof(p))(p)
     @test expected_means == seg.segment_means
     @test seg.image_indexmap == expected
 
+    # element-type and InexactError
+    img = zeros(Int, 4, 4)
+    img[2:end, 2:end] .= 10
+    img[end,end] = 11
+    seeds = [(CartesianIndex(1,1), 1), (CartesianIndex(2,2), 2)]
+
+    expected = ones(Int, size(img))
+    expected[2:end,2:end] .= 2
+    expected_labels = [1,2]
+    expected_means = Dict(1=>0.0, 2=>91/9)
+    expected_count = Dict(1=>7, 2=>9)
+
+    seg = seeded_region_growing(img, seeds, (3,3), (v1,v2)->(δ = abs(v1-v2); return δ > 1 ? δ : zero(δ)))
+    @test all(label->(label in expected_labels), seg.segment_labels)
+    @test all(label->(label in seg.segment_labels), expected_labels)
+    @test expected_count == seg.segment_pixel_count
+    @test expected_means == seg.segment_means
+    @test seg.image_indexmap == expected
+
     # 3-d image
     img = zeros(RGB{N0f8},(9,9,9))
     img[3:7,3:7,3:7] .= RGB{N0f8}(0.5,0.5,0.5)
