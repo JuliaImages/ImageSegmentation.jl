@@ -43,12 +43,16 @@ Returns true if `img` is homogeneous.
 
 # Examples
 
-```jldoctest
-# img is an array with elements of type `Float64`
+```jldoctest; setup = :(using Images, ImageSegmentation)
+julia> img = 0.1*rand(6, 6);
+
+julia> img[4:end, 4:end] .+= 10;
+
 julia> function homogeneous(img)
            min, max = extrema(img)
            max - min < 0.2
        end
+homogeneous (generic function with 1 method)
 
 julia> t = region_tree(img, homogeneous);
 ```
@@ -97,12 +101,16 @@ Returns true if `img` is homogeneous.
 
 # Examples
 
-```jldoctest
-# img is an array with elements of type `Float64`
+```jldoctest; setup = :(using Images, ImageSegmentation)
+julia> img = 0.1*rand(6, 6);
+
+julia> img[4:end, 4:end] .+= 10;
+
 julia> function homogeneous(img)
            min, max = extrema(img)
            max - min < 0.2
        end
+homogeneous (generic function with 1 method)
 
 julia> seg = region_splitting(img, homogeneous);
 ```
@@ -110,7 +118,7 @@ julia> seg = region_splitting(img, homogeneous);
 """
 function region_splitting(img::AbstractArray{T,N}, homogeneous::Function) where T<:Union{Colorant, Real} where N
     rtree = region_tree(img, homogeneous)
-    seg = SegmentedImage(similar(img, Int), Vector{Int}(), Dict{Int, Images.accum(T)}(), Dict{Int, Int}())
+    seg = SegmentedImage(similar(img, Int), Vector{Int}(), Dict{Int, meantype(T)}(), Dict{Int, Int}())
     lc = 1
     lc = fill_recursive!(seg, seg.image_indexmap, lc, rtree)
     seg

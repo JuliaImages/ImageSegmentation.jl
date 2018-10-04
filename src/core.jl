@@ -64,7 +64,7 @@ segment_mean(r::FuzzyCMeansResult) = Dict([(i, segment_mean(r,i)) for i in segme
 
 # Dispatch on show
 function show(io::IO, seg::SegmentedImage)
-    print(io, "Segmented Image with:\n\t labels map: ", summary(labels_map(seg)), "\n\t number of labels: ", length(segment_labels(seg)))
+    print(io, "Segmented Image with:\n  labels map: ", summary(labels_map(seg)), "\n  number of labels: ", length(segment_labels(seg)))
 end
 
 """

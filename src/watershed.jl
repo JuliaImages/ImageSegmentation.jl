@@ -59,14 +59,15 @@ function watershed(img::AbstractArray{T, N}, markers::AbstractArray{S,N}) where 
         end
     end
 
+    TM = meantype(T)
     num_segments        = Int(maximum(segments))
     labels              = Array(1:num_segments)
-    region_means        = Dict{Int, Images.accum(T)}()
+    region_means        = Dict{Int, TM}()
     region_pix_count    = Dict{Int, Int}()
 
     for i in R
         region_pix_count[segments[i]] = get(region_pix_count, segments[i], 0) + 1
-        region_means[segments[i]] = get(region_means, segments[i], zero(Images.accum(T))) + (img[i] - get(region_means, segments[i], zero(Images.accum(T))))/region_pix_count[segments[i]]
+        region_means[segments[i]] = get(region_means, segments[i], zero(TM)) + (img[i] - get(region_means, segments[i], zero(TM)))/region_pix_count[segments[i]]
     end
     return SegmentedImage(segments, labels, region_means, region_pix_count)
 end

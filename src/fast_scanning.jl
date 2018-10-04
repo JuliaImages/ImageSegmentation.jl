@@ -40,11 +40,15 @@ Segments the N-D image using a fast scanning algorithm and returns a
 
 # Examples:
 
-```jldoctest
+```jldoctest; setup = :(using Images, ImageSegmentation)
 julia> img = zeros(Float64, (3,3));
-julia> img[2,:] = 0.5;
-julia> img[:,2] = 0.6;
+
+julia> img[2,:] .= 0.5;
+
+julia> img[:,2] .= 0.6;
+
 julia> seg = fast_scanning(img, 0.2);
+
 julia> labels_map(seg)
 3×3 Array{Int64,2}:
  1  4  5
@@ -69,8 +73,9 @@ function fast_scanning(img::AbstractArray{CT,N}, threshold::Union{AbstractArray,
     neighbourhood(x) = ntuple(i-> x-half_region[i], Val(N))
 
     # Required data structures
+    TM = meantype(CT)
     result              =   fill(-1, axes(img))                             # Array to store labels
-    region_means        =   Dict{Int, Images.accum(CT)}()                   # A map conatining (label, mean) pairs
+    region_means        =   Dict{Int, TM}()                                 # A map conatining (label, mean) pairs
     region_pix_count    =   Dict{Int, Int}()                                # A map conatining (label, count) pairs
     temp_labels         =   IntDisjointSets(0)                              # Disjoint set to map labels to their equivalence class
     v_neigh             =   MVector{N,Int}(undef)                           # MVector to store valid neighbours
