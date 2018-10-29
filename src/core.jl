@@ -282,8 +282,8 @@ Any graph clustering technique can be used with the constructed RAG to segment t
 """
 
 function region_adjacency_graph(img::AbstractArray{CT,N}, weight_fn::Function, r::Int) where {CT<:Union{Colorant,Real}, N}
-    cartesian2node = LinearIndices(img)
-    node2cartesian = CartesianIndices(img)
+    cartesian2vertex = LinearIndices(img)
+    vertex2cartesian = CartesianIndices(img)
 
     sources = Vector{Int}()
     destinationss = Vector{Int}()
@@ -297,13 +297,13 @@ function region_adjacency_graph(img::AbstractArray{CT,N}, weight_fn::Function, r
             if I <= J 
                 continue
             end
-            append!(sources, cartesian2node[I])
-            append!(destinationss, cartesian2node[J])
+            append!(sources, cartesian2vertex[I])
+            append!(destinationss, cartesian2vertex[J])
             append!(weights, weight_fn(I, img[I], J, img[J]))
         end
     end
 
     G = SimpleWeightedGraph(sources, destinationss, weights)
 
-    return G, node2cartesian
+    return G, vertex2cartesian
 end
