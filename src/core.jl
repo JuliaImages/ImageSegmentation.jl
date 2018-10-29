@@ -264,3 +264,46 @@ end
 # Once Base has colon defined here we can replace this
 _colon(I::CartesianIndex{N}, J::CartesianIndex{N}) where N =
     map((i,j) -> i:j, Tuple(I), Tuple(J))
+
+
+"""
+    G, vertex2cartesian = region_adjacency_graph(img, weight_fn, r)
+
+Constructs a region adjacency graph (RAG) from a N-D image `img`. It returns the RAG
+along with a mapping from vertex index in RAG to cartesian index in the image.
+
+`weight_fn` is used to assign weights to the edges using pixel similarity and spatial
+proximity. Zero weight is assigned to edges between any pair of nodes that are more
+than r pixels apart.
+
+    edge_weight = weight_fn(I::CartesianIndex{N}, img[I]::CT, J::CartesianIndex{N}, img[J]::CT) where {CT<:Union{Colorant,Real}, N}
+
+Any graph clustering technique can be used with the constructed RAG to segment the image.
+"""
+
+function region_adjacency_graph(img::AbstractArray{CT,N}, weight_fn::Function, r::Int) where {CT<:Union{Colorant,Real}, N}
+    cartesian2node = LinearIndices(img)
+    node2cartesian = CartesianIndices(img)
+
+    sources = Vector{Int}()
+    destinationss = Vector{Int}()
+    weights = Vector{Float64}()
+
+    R = r * CartesianIndex{N}()
+    indices = CartesianIndices(size(img));
+    Istart, Iend = first(indices), last(indices)
+    for I in indices
+        for J in CartesianIndices(map((i,j)->i:j, Tuple(max(Istart, I-R)), Tuple(min(Iend, I+R))))
+            if I <= J 
+                continue
+            end
+            append!(sources, cartesian2node[I])
+            append!(destinationss, cartesian2node[J])
+            append!(weights, weight_fn(I, img[I], J, img[J]))
+        end
+    end
+
+    G = SimpleWeightedGraph(sources, destinationss, weights)
+
+    return G, node2cartesian
+end

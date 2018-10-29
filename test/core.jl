@@ -117,4 +117,21 @@
   @test all(label->(expected_means[label] ≈ new_seg.segment_means[label]), new_seg.segment_labels)
   @test new_seg.image_indexmap == expected
 
+  # region_adjacency_graph
+  img = fill(1.0, (10,10))
+  img[4:6, 4:6] .= 0
+
+  weight_fn(I::CartesianIndex{2}, img_I, J::CartesianIndex{2}, img_J) = exp(-abs(img_I - img_J)) / ((I[1]-J[1])^2 + (I[2]-J[2])^2) 
+  G, vertex2cartesian = region_adjacency_graph(img, weight_fn, 2)
+
+  @test nv(G) == 100
+  @test G.weights[45,46] == 1
+  @test G.weights[43,44] == exp(-1)
+
+  #test that all edges weights equal weights computed using weight_fn
+  @test all(map(edge-> edge.weight == weight_fn(vertex2cartesian[edge.src], img[vertex2cartesian[edge.src]], vertex2cartesian[edge.dst], img[vertex2cartesian[edge.dst]]), edges(G)))
+
+  #test that all edges are between nodes less than r pixels away
+  @test all(map(edge-> max(abs(vertex2cartesian[edge.src][1] - vertex2cartesian[edge.dst][1]), abs(vertex2cartesian[edge.src][2] - vertex2cartesian[edge.dst][2])) <= 2 , edges(G)))
+
 end
