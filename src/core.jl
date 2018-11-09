@@ -267,43 +267,59 @@ _colon(I::CartesianIndex{N}, J::CartesianIndex{N}) where N =
 
 
 """
-    G, vertex2cartesian = region_adjacency_graph(img, weight_fn, r)
+    G, vertex2cartesian = region_adjacency_graph(img, weight_fn, R)
 
-Constructs a region adjacency graph (RAG) from a N-D image `img`. It returns the RAG
-along with a mapping from vertex index in RAG to cartesian index in the image.
+Constructs a region adjacency graph (RAG) from a N-D image `img`. It returns the RAG along
+with a mapping from vertex index in RAG to cartesian index in the image.
 
-`weight_fn` is used to assign weights to the edges using pixel similarity and spatial
-proximity. Zero weight is assigned to edges between any pair of nodes that are more
-than r pixels apart.
+`weight_fn` is used to assign weights to the edges using pixel similarity and spatial proximity,
+where higher weight means greater similarity and thus stronger association. Zero weight is assigned
+to edges between any pair of nodes that are more than `R` pixels apart. `R` can be specified
+as a N-dimensional `CartesianIndex`. Alternatively, `R` can be an integer, in which a 
+N-dimensional `CartesianIndex` with value `R` along each dimension is used. `weight_fn` should have
+signature - 
 
-    edge_weight = weight_fn(I::CartesianIndex{N}, img[I]::CT, J::CartesianIndex{N}, img[J]::CT) where {CT<:Union{Colorant,Real}, N}
+    edge_weight = weight_fn(p1::Pair{CartesianIndex{N},T}, p2::Pair{CartesianIndex{N},T}) where {N,T}
 
 Any graph clustering technique can be used with the constructed RAG to segment the image.
+
+# Example
+
+```julia
+    julia> using ImageSegmentation, SimpleWeightedGraphs
+    julia> img = fill(1.0, (10,10))
+    julia> img[4:6, 4:6] .= 0
+
+    julia> weight_fn(I, J) = 1-abs(I.second - J.second)
+    julia> G, vertex2cartesian = region_adjacency_graph(img, weight_fn, 1)
+```
+
 """
 
-function region_adjacency_graph(img::AbstractArray{CT,N}, weight_fn::Function, r::Int) where {CT<:Union{Colorant,Real}, N}
+function region_adjacency_graph(img::AbstractArray{CT,N}, weight_fn::Function, R::CartesianIndex{N}) where {CT<:Union{Colorant,Real}, N}
     cartesian2vertex = LinearIndices(img)
     vertex2cartesian = CartesianIndices(img)
 
     sources = Vector{Int}()
-    destinationss = Vector{Int}()
+    destinations = Vector{Int}()
     weights = Vector{Float64}()
 
-    R = r * CartesianIndex{N}()
-    indices = CartesianIndices(size(img));
+    indices = CartesianIndices(axes(img));
     Istart, Iend = first(indices), last(indices)
     for I in indices
         for J in CartesianIndices(map((i,j)->i:j, Tuple(max(Istart, I-R)), Tuple(min(Iend, I+R))))
             if I <= J 
                 continue
             end
-            append!(sources, cartesian2vertex[I])
-            append!(destinationss, cartesian2vertex[J])
-            append!(weights, weight_fn(I, img[I], J, img[J]))
+            push!(sources, cartesian2vertex[I])
+            push!(destinations, cartesian2vertex[J])
+            push!(weights, weight_fn(I=>img[I], J=>img[J]))
         end
     end
 
-    G = SimpleWeightedGraph(sources, destinationss, weights)
+    G = SimpleWeightedGraph(sources, destinations, weights)
 
     return G, vertex2cartesian
 end
+
+region_adjacency_graph(img::AbstractArray{CT,N}, weight_fn::Function, R::Int) where {CT<:Union{Colorant,Real}, N} = region_adjacency_graph(img, weight_fn, R * CartesianIndex{N}())
