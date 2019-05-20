@@ -36,7 +36,7 @@ function watershed(img::AbstractArray{T, N}, markers::AbstractArray{S,N}; compac
 
     compact = compactness > 0.0
     segments = copy(markers)
-    pq = PriorityQueue{CartesianIndex{N}, PixelKey{T}}()
+    pq = PriorityQueue{CartesianIndex{N}, PixelKey{T, N}}()
     time_step = 0
 
     R = CartesianIndices(axes(img))
