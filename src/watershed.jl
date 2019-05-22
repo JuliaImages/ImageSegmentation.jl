@@ -28,10 +28,15 @@ Parameters:
 
 
 """
-function watershed(img::AbstractArray{T, N}, markers::AbstractArray{S,N}; compactness::Float64 = 0.0) where {T<:Images.NumberLike, S<:Integer, N}
+function watershed(img::AbstractArray{T, N},
+                   markers::AbstractArray{S,N};
+                   mask::AbstractArray{Bool, N}=fill(true, size(img)),
+                   compactness::Float64 = 0.0) where {T<:Images.NumberLike, S<:Integer, N}
 
     if axes(img) != axes(markers)
         error("image size doesn't match marker image size")
+    elseif axes(img) != axes(mask)
+        error("image size doesn't match mask size")
     end
 
     compact = compactness > 0.0
@@ -70,6 +75,9 @@ function watershed(img::AbstractArray{T, N}, markers::AbstractArray{S,N}; compac
 
         img_current = img[curr_idx]
         for j in CartesianIndices(_colon(max(Istart,curr_idx-one(curr_idx)), min(curr_idx+one(curr_idx),Iend)))
+
+            # if this location is false in the mask, we skip it
+            (!mask[j]) && continue
             # only continue if this is a position that we haven't assigned yet
             if segments[j] == 0
                 # if we're doing a simple watershed, we can go ahead and set the final grouping for a new
