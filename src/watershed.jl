@@ -88,7 +88,7 @@ function watershed(img::AbstractArray{T, N},
                 else
                     # in the compact algorithm case, we don't set the grouping at push-time and calculate
                     # a weighted value based on the
-                    new_value = img_current + compactness * _euclidean(j, curr_elem.source)
+                    new_value = T(img_current + compactness * _euclidean(j, curr_elem.source))
                 end
 
                 # if this position is in the queue and we're using the compact algorithm, we need to replace
