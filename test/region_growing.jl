@@ -92,6 +92,36 @@ of_mean_type(p::Colorant) = ImageSegmentation.meantype(typeof(p))(p)
     @test expected_means == seg.segment_means
     @test seg.image_indexmap == expected
 
+    # changed mean and the same queues are in NHQ for several iterations
+    # in this case the queue cannot just be inserted into pq several times
+    img = Gray{N0f8}.([  
+     0.475  0.412  0.443  0.475  0.702  0.714  0.667  0.443  0.404  0.353
+     0.525  0.431  0.365  0.424  0.682  0.698  0.635  0.365  0.329  0.318
+     0.561  0.553  0.545  0.463  0.643  0.663  0.58   0.275  0.251  0.259
+     0.561  0.588  0.655  0.639  0.694  0.62   0.537  0.263  0.184  0.184
+     0.463  0.584  0.639  0.635  0.655  0.584  0.482  0.267  0.169  0.169
+     0.263  0.263  0.541  0.557  0.58   0.522  0.431  0.243  0.145  0.145
+     0.239  0.231  0.239  0.38   0.443  0.467  0.376  0.224  0.118  0.122
+     0.263  0.212  0.153  0.325  0.404  0.471  0.349  0.22   0.106  0.106
+     0.255  0.208  0.133  0.333  0.416  0.482  0.345  0.224  0.098  0.169
+     0.235  0.18   0.102  0.294  0.369  0.447  0.325  0.22   0.122  0.184 ])
+
+    expected = [
+     1  1  1  1  1  1  1  1  1  2
+     1  1  1  1  1  1  1  2  2  2
+     1  1  1  1  1  1  1  2  2  2
+     1  1  1  1  1  1  1  2  2  2
+     1  1  1  1  1  1  1  2  2  2
+     3  3  1  1  1  1  1  2  2  2
+     3  3  3  3  1  1  2  2  2  2
+     3  3  3  3  3  1  2  2  2  2
+     3  3  3  3  3  1  2  2  2  2
+     3  3  3  3  3  1  2  2  2  2]
+
+    seeds = [ (CartesianIndex(1,5),1), (CartesianIndex(8,9),2), (CartesianIndex(9,3),3) ]
+    seg = seeded_region_growing(img, seeds)
+    @test seg.image_indexmap == expected
+
     # 3-d image
     img = zeros(RGB{N0f8},(9,9,9))
     img[3:7,3:7,3:7] .= RGB{N0f8}(0.5,0.5,0.5)
