@@ -1,18 +1,18 @@
 import Base.isless
 
-struct PixelKey{CT, N}
-    val::CT
+struct PixelKey{N}
+    val
     time_step::Int
     source::CartesianIndex{N}
 end
-isless(a::PixelKey{T, N}, b::PixelKey{T, N}) where {T, N} = (a.val < b.val) || (a.val == b.val && a.time_step < b.time_step)
+isless(a::PixelKey, b::PixelKey) = (a.val < b.val) || (a.val == b.val && a.time_step < b.time_step)
 
 """Calculate the euclidean distance between two `CartesianIndex` structs"""
 @inline _euclidean(a::CartesianIndex{N}, b::CartesianIndex{N}) where {N} = sqrt(sum(Tuple(a - b) .^ 2))
 
 """
 ```
-segments                = watershed(img, markers; compactness)
+segments                = watershed(img, markers; compactness, mask)
 ```
 Segments the image using watershed transform. Each basin formed by watershed transform corresponds to a segment.
 If you are using image local minimas as markers, consider using [`hmin_transform`](@ref) to avoid oversegmentation.
@@ -22,15 +22,16 @@ Parameters:
 -    markers        = An array (same size as img) with each region's marker assigned a index starting from 1. Zero means not a marker.
                       If two markers have the same index, their regions will be merged into a single region.
                       If you have markers as a boolean array, use `label_components`.
-- compactness       = Use the compact watershed algorithm with the given compactness parameter. Larger values lead to more regularly
-                      shaped watershed basins.
+-    compactness    = Use the compact watershed algorithm with the given compactness parameter. Larger values lead to more regularly
+                      shaped watershed basins.[^1]
+-    mask           = Only segment pixels where the value of `mask` is true, used to restrict segmentation to only areas of interest
 
 
-
+[^1]: https://www.tu-chemnitz.de/etit/proaut/publications/cws_pSLIC_ICPR.pdf
 """
 function watershed(img::AbstractArray{T, N},
                    markers::AbstractArray{S,N};
-                   mask::AbstractArray{Bool, N}=fill(true, size(img)),
+                   mask::AbstractArray{Bool, N}=fill(true, axes(img)),
                    compactness::Float64 = 0.0) where {T<:Images.NumberLike, S<:Integer, N}
 
     if axes(img) != axes(markers)
@@ -41,7 +42,7 @@ function watershed(img::AbstractArray{T, N},
 
     compact = compactness > 0.0
     segments = copy(markers)
-    pq = PriorityQueue{CartesianIndex{N}, PixelKey{T, N}}()
+    pq = PriorityQueue{CartesianIndex{N}, PixelKey{N}}()
     time_step = 0
 
     R = CartesianIndices(axes(img))
@@ -63,7 +64,7 @@ function watershed(img::AbstractArray{T, N},
         segments_current = segments[curr_idx]
 
         # If we're using the compact algorithm, we need assign grouping for a given location
-        # when it comes off the queue since we could have found a better suited watershed later.
+        # when it comes off the queue since we could find a better suited watershed later.
         if compact
             if segments_current > 0 && curr_idx != curr_elem.source
                 # this is a non-marker location that we've already assigned
@@ -86,9 +87,11 @@ function watershed(img::AbstractArray{T, N},
                     segments[j] = segments_current
                     new_value = img_current
                 else
-                    # in the compact algorithm case, we don't set the grouping at push-time and calculate
-                    # a weighted value based on the
-                    new_value = T(img_current + compactness * _euclidean(j, curr_elem.source))
+                    # in the compact algorithm case, we don't set the grouping
+                    # at push-time and instead calculate a temporary value based
+                    # on the weighted sum of the intensity and distance to the
+                    # current source marker.
+                    new_value = Float64(img_current + compactness * _euclidean(j, curr_elem.source))
                 end
 
                 # if this position is in the queue and we're using the compact algorithm, we need to replace
