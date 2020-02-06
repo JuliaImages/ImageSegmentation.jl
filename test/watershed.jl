@@ -17,6 +17,19 @@ using ImageFiltering
     @test result.segment_labels == collect(1:2)
     @test all(label->(label==result.image_indexmap[50,50]), result.image_indexmap[26:74,26:74])
 
+    mask = trues(size(img))
+    mask[60:70, 60:70] .= false
+
+    result = watershed(img, markers, compactness=10.0, mask=mask)
+    labels = labels_map(result)
+
+    # where the mask is false, no label should be assigned
+    @test sum(labels[.~ mask]) == 0
+
+    # since this is using the compact algorithm with a high value for
+    # compactness, the boundary between labels 1 and 2 should occur halfway
+    # between the two markers
+    @test sum(labels .== 1) == sum(1:50) - 2
 
     img = ones(15, 15)
     #minima of depth 0.2
