@@ -3,9 +3,10 @@ language: julia
 os:
   - linux
   - osx
+  - windows
 julia:
   - 1.0
-  - 1.1
+  - 1
   - nightly
 notifications:
   email: false
@@ -14,10 +15,7 @@ notifications:
 #  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
 #  - julia -e 'Pkg.clone(pwd()); Pkg.build("ImageSegmentation"); Pkg.test("ImageSegmentation"; coverage=true)'
 after_success:
-  # push coverage results to Coveralls
-  - julia -e 'cd(Pkg.dir("ImageSegmentation")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
-  # push coverage results to Codecov
-  - julia -e 'cd(Pkg.dir("ImageSegmentation")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
+ - julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
 
 matrix:
   allow_failures:
