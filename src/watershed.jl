@@ -1,7 +1,7 @@
 import Base.isless
 
-struct PixelKey{N}
-    val
+struct PixelKey{CT, N}
+    val::CT
     time_step::Int
     source::CartesianIndex{N}
 end
@@ -42,7 +42,7 @@ function watershed(img::AbstractArray{T, N},
 
     compact = compactness > 0.0
     segments = copy(markers)
-    pq = PriorityQueue{CartesianIndex{N}, PixelKey{N}}()
+    pq = PriorityQueue{CartesianIndex{N}, PixelKey{compact ? Float64 : T, N}}()
     time_step = 0
 
     R = CartesianIndices(axes(img))
@@ -96,7 +96,7 @@ function watershed(img::AbstractArray{T, N},
 
                 # if this position is in the queue and we're using the compact algorithm, we need to replace
                 # its watershed if we find one that it better belongs to
-                if j in keys(pq) && compact
+                if compact && j in keys(pq)
                     elem = pq[j]
                     new_elem = PixelKey(new_value, time_step, curr_elem.source)
 
