@@ -52,7 +52,7 @@ function watershed(img::AbstractArray{T, N},
             for j in CartesianIndices(_colon(max(Istart,i-one(i)), min(i+one(i),Iend)))
                 if segments[j] == 0
                     segments[j] = markers[i]
-                    enqueue!(pq, j, PixelKey(img[i], time_step, j))
+                    enqueue!(pq, j, PixelKey(compact ? Float64.(img[1]) : img[i], time_step, j))
                     time_step += 1
                 end
             end
