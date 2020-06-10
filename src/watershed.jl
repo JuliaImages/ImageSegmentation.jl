@@ -32,7 +32,7 @@ Parameters:
 function watershed(img::AbstractArray{T, N},
                    markers::AbstractArray{S,N};
                    mask::AbstractArray{Bool, N}=fill(true, axes(img)),
-                   compactness::Float64 = 0.0) where {T<:Images.NumberLike, S<:Integer, N}
+                   compactness::Real = 0.0) where {T<:Images.NumberLike, S<:Integer, N}
 
     if axes(img) != axes(markers)
         error("image size doesn't match marker image size")
@@ -42,7 +42,8 @@ function watershed(img::AbstractArray{T, N},
 
     compact = compactness > 0.0
     segments = copy(markers)
-    pq = PriorityQueue{CartesianIndex{N}, PixelKey{compact ? Float64 : T, N}}()
+    PK = PixelKey{compact ? floattype(T) : T, N}
+    pq = PriorityQueue{CartesianIndex{N}, PK}()
     time_step = 0
 
     R = CartesianIndices(axes(img))
@@ -52,7 +53,7 @@ function watershed(img::AbstractArray{T, N},
             for j in CartesianIndices(_colon(max(Istart,i-one(i)), min(i+one(i),Iend)))
                 if segments[j] == 0
                     segments[j] = markers[i]
-                    enqueue!(pq, j, PixelKey(compact ? Float64.(img[1]) : img[i], time_step, j))
+                    enqueue!(pq, j, PK(img[i], time_step, j))
                     time_step += 1
                 end
             end
@@ -91,14 +92,14 @@ function watershed(img::AbstractArray{T, N},
                     # at push-time and instead calculate a temporary value based
                     # on the weighted sum of the intensity and distance to the
                     # current source marker.
-                    new_value = Float64(img_current + compactness * _euclidean(j, curr_elem.source))
+                    new_value = floattype(T)(img_current + compactness * _euclidean(j, curr_elem.source))
                 end
 
                 # if this position is in the queue and we're using the compact algorithm, we need to replace
                 # its watershed if we find one that it better belongs to
                 if compact && j in keys(pq)
                     elem = pq[j]
-                    new_elem = PixelKey(new_value, time_step, curr_elem.source)
+                    new_elem = PK(new_value, time_step, curr_elem.source)
 
                     if new_elem < elem
                         pq[j] = new_elem # update the watershed
@@ -106,7 +107,7 @@ function watershed(img::AbstractArray{T, N},
                     end
                 else
 
-                    pq[j] = PixelKey(new_value, time_step, curr_elem.source)
+                    pq[j] = PK(new_value, time_step, curr_elem.source)
                     time_step += 1
                 end
             end
