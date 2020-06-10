@@ -28,6 +28,20 @@ Parameters:
 
 
 [^1]: https://www.tu-chemnitz.de/etit/proaut/publications/cws_pSLIC_ICPR.pdf
+
+# Example
+
+```jldoctest; setup = :(using Images, ImageSegmentation)
+julia> seeds = falses(100, 100); seeds[50, 25] = true; seeds[50, 75] = true;
+
+julia> dists = distance_transform(feature_transform(seeds)); # calculate distances from seeds
+
+julia> markers = label_components(seeds); # give each seed a unique integer id
+
+julia> results = watershed(dists, markers);
+
+julia> labels_map(result); # labels of segmented image
+```
 """
 function watershed(img::AbstractArray{T, N},
                    markers::AbstractArray{S,N};
