@@ -128,16 +128,16 @@ end
 
 
 """
-    new_seg = rem_segment(seg, label, diff_fn)
+    new_seg = remove_segment(seg, label, diff_fn)
 
 Removes the segment having label `label` and returns the new `SegmentedImage`.
 For more info, see [`remove_segment!`](@ref)
 
 """
-rem_segment(s::SegmentedImage, args...) = rem_segment!(deepcopy(s), args...)
+remove_segment(s::SegmentedImage, args...) = remove_segment!(deepcopy(s), args...)
 
 """
-    rem_segment!(seg, label, diff_fn)
+    remove_segment!(seg, label, diff_fn)
 
 In place removal of the segment having label `label`, replacing it with the neighboring
 segment having least `diff_fn` value.
@@ -152,15 +152,15 @@ defined for objects of the type of `d`.
 ```julia
     # This removes the label `l` and replaces it with the label of
     # neighbor having maximum pixel count.
-    julia> rem_segment!(seg, l, (i,j)->(-seg.segment_pixel_count[j]))
+    julia> remove_segment!(seg, l, (i,j)->(-seg.segment_pixel_count[j]))
 
     # This removes the label `l` and replaces it with the label of
     # neighbor having the least value of euclidian metric.
-    julia> rem_segment!(seg, l, (i,j)->sum(abs2, seg.segment_means[i]-seg.segment_means[j]))
+    julia> remove_segment!(seg, l, (i,j)->sum(abs2, seg.segment_means[i]-seg.segment_means[j]))
 ```
 
 """
-function rem_segment!(s::SegmentedImage, label::Int, diff_fn::Function)
+function remove_segment!(s::SegmentedImage, label::Int, diff_fn::Function)
     haskey(s.segment_means, label) || error("Label $label not present!")
     G, vert_map = region_adjacency_graph(s, (i,j)->1)
     vert_label = vert_map[label]
@@ -275,9 +275,9 @@ with a mapping from vertex index in RAG to cartesian index in the image.
 `weight_fn` is used to assign weights to the edges using pixel similarity and spatial proximity,
 where higher weight means greater similarity and thus stronger association. Zero weight is assigned
 to edges between any pair of nodes that are more than `R` pixels apart. `R` can be specified
-as a N-dimensional `CartesianIndex`. Alternatively, `R` can be an integer, in which a 
+as a N-dimensional `CartesianIndex`. Alternatively, `R` can be an integer, in which a
 N-dimensional `CartesianIndex` with value `R` along each dimension is used. `weight_fn` should have
-signature - 
+signature -
 
     edge_weight = weight_fn(p1::Pair{CartesianIndex{N},T}, p2::Pair{CartesianIndex{N},T}) where {N,T}
 
@@ -308,7 +308,7 @@ function region_adjacency_graph(img::AbstractArray{CT,N}, weight_fn::Function, R
     Istart, Iend = first(indices), last(indices)
     for I in indices
         for J in CartesianIndices(map((i,j)->i:j, Tuple(max(Istart, I-R)), Tuple(min(Iend, I+R))))
-            if I <= J 
+            if I <= J
                 continue
             end
             push!(sources, cartesian2vertex[I])

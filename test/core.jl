@@ -49,12 +49,12 @@
   @test g == expectedg
   @test vm == expectedvm
 
-  # rem_segment
+  # remove_segment
   img = fill(1.0, (10,10))
   img[1:4,:] .= 2.0
   img[:,5:10] .= 4.0
   seg = fast_scanning(img, 0.5)
-  new_seg = rem_segment(seg, 1, (i,j)->(-seg.segment_pixel_count[j]))
+  new_seg = remove_segment(seg, 1, (i,j)->(-seg.segment_pixel_count[j]))
 
   expected = fill(3, (10,10))
   expected[5:10,1:4] .= 2
@@ -68,7 +68,7 @@
   @test all(label->(expected_means[label] ≈ new_seg.segment_means[label]), new_seg.segment_labels)
   @test new_seg.image_indexmap == expected
 
-  new_seg = rem_segment(seg, 1, (i,j)->sum(abs2, seg.segment_means[i]-seg.segment_means[j]))
+  new_seg = remove_segment(seg, 1, (i,j)->sum(abs2, seg.segment_means[i]-seg.segment_means[j]))
 
   expected = fill(3, (10,10))
   expected[:,1:4] .= 2
@@ -81,7 +81,7 @@
   @test all(label->(expected_means[label] ≈ new_seg.segment_means[label]), new_seg.segment_labels)
   @test new_seg.image_indexmap == expected
 
-  rem_segment!(seg, 1, (i,j)->sum(abs2, seg.segment_means[i]-seg.segment_means[j]))
+  remove_segment!(seg, 1, (i,j)->sum(abs2, seg.segment_means[i]-seg.segment_means[j]))
 
   @test all(label->(label in expected_labels), seg.segment_labels)
   @test all(label->(label in seg.segment_labels), expected_labels)
