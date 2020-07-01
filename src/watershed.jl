@@ -40,7 +40,7 @@ julia> markers = label_components(seeds); # give each seed a unique integer id
 
 julia> results = watershed(dists, markers);
 
-julia> labels_map(result); # labels of segmented image
+julia> labels_map(results); # labels of segmented image
 ```
 """
 function watershed(img::AbstractArray{T, N},
