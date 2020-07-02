@@ -1,5 +1,8 @@
 using ImageSegmentation, Images, Test, SimpleWeightedGraphs, LightGraphs, StaticArrays, RegionTrees
 
+using Documenter
+doctest(ImageSegmentation, manual = false)
+
 include("core.jl")
 include("region_growing.jl")
 include("felzenszwalb.jl")
