@@ -64,7 +64,7 @@ function watershed(img::AbstractArray{T, N},
     Istart, Iend = first(R), last(R)
     for i in R
         if markers[i] > 0
-            for j in CartesianIndices(_colon(max(Istart,i-one(i)), min(i+one(i),Iend)))
+            for j in CartesianIndices(_colon(max(Istart,i-_oneunit(i)), min(i+_oneunit(i),Iend)))
                 if segments[j] == 0
                     segments[j] = markers[i]
                     enqueue!(pq, j, PK(img[i], time_step, j))
@@ -90,7 +90,7 @@ function watershed(img::AbstractArray{T, N},
         end
 
         img_current = img[curr_idx]
-        for j in CartesianIndices(_colon(max(Istart,curr_idx-one(curr_idx)), min(curr_idx+one(curr_idx),Iend)))
+        for j in CartesianIndices(_colon(max(Istart,curr_idx-_oneunit(curr_idx)), min(curr_idx+_oneunit(curr_idx),Iend)))
 
             # if this location is false in the mask, we skip it
             (!mask[j]) && continue

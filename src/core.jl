@@ -82,7 +82,7 @@ function region_adjacency_graph(s::SegmentedImage, weight_fn::Function)
 
     function neighbor_regions!(n::Set{Int}, visited::AbstractArray, s::SegmentedImage, I::CartesianIndex)
         R = CartesianIndices(axes(s.image_indexmap))
-        I1 = one(CartesianIndex{ndims(visited)})
+        I1 = _oneunit(CartesianIndex{ndims(visited)})
         Ibegin, Iend = first(R), last(R)
         t = Vector{CartesianIndex{ndims(visited)}}()
         push!(t, I)

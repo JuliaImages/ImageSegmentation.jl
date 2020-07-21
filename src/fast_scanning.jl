@@ -8,7 +8,7 @@ function adaptive_thres(img::AbstractArray{CT,N}, block::NTuple{N,Int}) where {C
     net_end = last(CartesianIndices(axes(img)))
     for i in CartesianIndices(block)
         si = CartesianIndex(ntuple(j->(i[j]-1)*block_length[j]+1,Val(N)))
-        ei = min(si + block_length - one(si), net_end)
+        ei = min(si + block_length - _oneunit(si), net_end)
         wi = view(img, map((i,j)->i:j, si.I, ei.I)...)
         threshold[i] = 0.02 + min(sharpness(wi)/net_s*0.04,0.1) + min(var(wi)/net_var*0.04,0.1)
     end
