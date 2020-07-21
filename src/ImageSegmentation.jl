@@ -6,6 +6,7 @@ using LinearAlgebra, Statistics
 using Images, DataStructures, StaticArrays, ImageFiltering, LightGraphs, SimpleWeightedGraphs, RegionTrees, Distances, StaticArrays, Clustering
 import Clustering: kmeans, fuzzy_cmeans
 
+include("compat.jl")
 include("core.jl")
 include("region_growing.jl")
 include("felzenszwalb.jl")
