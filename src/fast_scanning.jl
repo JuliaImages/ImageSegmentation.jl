@@ -88,7 +88,7 @@ function fast_scanning(img::AbstractArray{CT,N}, threshold::Union{AbstractArray,
         prev_label = 0
         for p in neighbourhood(point)
             if checkbounds(Bool, img, p)
-                root_p = find_root(temp_labels, result[p])
+                root_p = find_root!(temp_labels, result[p])
                 if diff_fn(region_means[root_p], img[point]) < getscalar(threshold, point, block_length)
                     if prev_label == 0
                         prev_label = root_p
@@ -96,7 +96,7 @@ function fast_scanning(img::AbstractArray{CT,N}, threshold::Union{AbstractArray,
                         same_label = false
                     end
                     sz += 1
-                    v_neigh[sz] = find_root(temp_labels, root_p)
+                    v_neigh[sz] = find_root!(temp_labels, root_p)
                 end
             end
         end
@@ -138,7 +138,7 @@ function fast_scanning(img::AbstractArray{CT,N}, threshold::Union{AbstractArray,
     end
 
     for point in CartesianIndices(axes(img))
-        result[point] = find_root(temp_labels, result[point])
+        result[point] = find_root!(temp_labels, result[point])
     end
 
     SegmentedImage(result, unique(temp_labels.parents), region_means, region_pix_count)

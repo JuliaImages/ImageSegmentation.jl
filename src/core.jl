@@ -238,7 +238,7 @@ function prune_segments(s::SegmentedImage, is_rem::Function, diff_fn::Function)
 
     segments = Set{Int}()
     for i in 1:nv(G)
-        push!(segments, find_root(u, i))
+        push!(segments, find_root!(u, i))
     end
 
     result              =   similar(s.image_indexmap)
@@ -253,7 +253,7 @@ function prune_segments(s::SegmentedImage, is_rem::Function, diff_fn::Function)
     end
 
     for p in CartesianIndices(axes(result))
-        result[p] = find_root(u, vert_map[s.image_indexmap[p]])
+        result[p] = find_root!(u, vert_map[s.image_indexmap[p]])
         region_pix_count[result[p]] = get(region_pix_count, result[p], 0) + 1
         region_means[result[p]] = get(region_means, result[p], zero(m_type)) + (s.segment_means[s.image_indexmap[p]] - get(region_means, result[p], zero(m_type)))/(region_pix_count[result[p]])
     end

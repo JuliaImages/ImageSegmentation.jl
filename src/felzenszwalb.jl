@@ -41,8 +41,8 @@ function felzenszwalb(edges::Array{ImageEdge}, num_vertices::Int, k::Real, min_s
 
     for edge in edges
         w = edge.weight
-        a = find_root(G, edge.index1)
-        b = find_root(G, edge.index2)
+        a = find_root!(G, edge.index1)
+        b = find_root!(G, edge.index2)
         if a!=b
             if w <= min(threshold[a], threshold[b])
                 merged_root = union!(G, a, b)
@@ -54,8 +54,8 @@ function felzenszwalb(edges::Array{ImageEdge}, num_vertices::Int, k::Real, min_s
 
     #merge small segments
     for edge in edges
-        a = find_root(G, edge.index1)
-        b = find_root(G, edge.index2)
+        a = find_root!(G, edge.index1)
+        b = find_root!(G, edge.index2)
         if a!=b && (set_size[a] < min_size || set_size[b] < min_size)
             union!(G, a, b)
         end
@@ -63,7 +63,7 @@ function felzenszwalb(edges::Array{ImageEdge}, num_vertices::Int, k::Real, min_s
 
     segments = OrderedSet()
     for i in 1:num_vertices
-        push!(segments, find_root(G, i))
+        push!(segments, find_root!(G, i))
     end
 
     num_sets = length(segments)
@@ -74,7 +74,7 @@ function felzenszwalb(edges::Array{ImageEdge}, num_vertices::Int, k::Real, min_s
 
     index_map = Array{Int}(undef, num_vertices)
     for i in 1:num_vertices
-        index_map[i] = segments2index[find_root(G, i)]
+        index_map[i] = segments2index[find_root!(G, i)]
     end
 
     return index_map, num_sets
