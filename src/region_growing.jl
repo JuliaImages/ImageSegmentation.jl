@@ -40,7 +40,7 @@ julia> seeds = [(CartesianIndex(3,1),1),(CartesianIndex(2,2),2)];
 julia> seg = seeded_region_growing(img, seeds);
 
 julia> labels_map(seg)
-4×4 Array{Int64,2}:
+4×4 $(Matrix{Int}):
  1  1  1  1
  1  2  2  2
  1  2  2  2
@@ -150,7 +150,7 @@ function seeded_region_growing(img::AbstractArray{CT,N}, seeds::AbstractVector{T
                         if curr_diff < mindiff
                             mindiff = curr_diff
                             mindifflabel = result[point]
-                        elseif isapprox(curr_diff, mindiff) #, atol=1e-8) 
+                        elseif isapprox(curr_diff, mindiff) #, atol=1e-8)
                             mindifflabel = 0
                         end
                     end
@@ -221,7 +221,7 @@ julia> img[2:4,2:4] .= 1;
 julia> seg = unseeded_region_growing(img, 0.2);
 
 julia> labels_map(seg)
-4×4 Array{Int64,2}:
+4×4 $(Matrix{Int}):
  1  1  1  1
  1  2  2  2
  1  2  2  2

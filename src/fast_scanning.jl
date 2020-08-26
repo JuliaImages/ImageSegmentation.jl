@@ -50,7 +50,7 @@ julia> img[:,2] .= 0.6;
 julia> seg = fast_scanning(img, 0.2);
 
 julia> labels_map(seg)
-3×3 Array{Int64,2}:
+3×3 $(Matrix{Int}):
  1  4  5
  4  4  4
  3  4  6
