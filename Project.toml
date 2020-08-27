@@ -1,6 +1,6 @@
 name = "ImageSegmentation"
 uuid = "80713f31-8817-5129-9cf8-209ff8fb23e1"
-version = "1.4.5"
+version = "1.4.6"
 
 [deps]
 Clustering = "aaaa29a8-35af-508c-8bc3-b662a17a0fe5"
@@ -17,7 +17,7 @@ Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [compat]
 Clustering = "0.10, 0.11, 0.12, 0.13, 0.14"
-DataStructures = "0.12, 0.13, 0.14, 0.15, 0.16, 0.17"
+DataStructures = "0.17.11, 0.18"
 Distances = "0.8"
 Documenter = "0.24, 0.25"
 ImageFiltering = "0.6"
