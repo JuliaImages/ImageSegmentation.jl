@@ -3,8 +3,9 @@ module ImageSegmentation
 import Base: show
 
 using LinearAlgebra, Statistics
-using Images, DataStructures, StaticArrays, ImageFiltering, LightGraphs, SimpleWeightedGraphs, RegionTrees, Distances, StaticArrays, Clustering
+using Images, DataStructures, StaticArrays, ImageFiltering, LightGraphs, SimpleWeightedGraphs, RegionTrees, Distances, StaticArrays, Clustering, MetaGraphs
 import Clustering: kmeans, fuzzy_cmeans
+import Colors
 
 include("compat.jl")
 include("core.jl")
@@ -15,6 +16,7 @@ include("watershed.jl")
 include("region_merging.jl")
 include("meanshift.jl")
 include("clustering.jl")
+include("merge.jl")
 
 export
     #accessor methods
@@ -39,7 +41,8 @@ export
     meanshift,
     kmeans,
     fuzzy_cmeans,
-
+    merge,
+    
     # types
     SegmentedImage,
     ImageEdge
