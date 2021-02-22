@@ -1,5 +1,5 @@
 """
-    seg_img = merge(seg, threshold)
+    seg2 = merge_segments(seg, threshold)
 
 Merges segments in a [`SegmentedImage`](@ref) by building a region adjacency
 graph (RAG) and merging segments connected by edges with weight less than 
@@ -15,7 +15,7 @@ Vighnesh Birodkar
 "Hierarchical merging of region adjacency graphs"
 https://vcansimplify.wordpress.com/2014/08/17/hierarchical-merging-of-region-adjacency-graphs/
 """
-function merge(seg::SegmentedImage, threshold::Number)::SegmentedImage
+function merge_segments(seg::SegmentedImage, threshold::Number)::SegmentedImage
     g = seg_to_graph(seg)
 
     # Populate a heap of all the edges, and a Bool indicating whether the edge
@@ -97,7 +97,7 @@ end
 """
     seg2 = resegment(seg1, rag)
 
-Takes a segmentation and a region adjacency graph produced by `merge`
+Takes a segmentation and a region adjacency graph produced by `merge_segments`
 and produces an segmentation that corresponds to the graph.
 
 # Arguments:

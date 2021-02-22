@@ -15,7 +15,7 @@ include("watershed.jl")
 include("region_merging.jl")
 include("meanshift.jl")
 include("clustering.jl")
-include("merge.jl")
+include("merge_segments.jl")
 
 export
     #accessor methods
@@ -40,7 +40,7 @@ export
     meanshift,
     kmeans,
     fuzzy_cmeans,
-    merge,
+    merge_segments,
     
     # types
     SegmentedImage,

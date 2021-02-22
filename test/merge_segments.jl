@@ -1,4 +1,4 @@
-include("../src/merge.jl")
+include("../src/merge_segments.jl")
 
 @testset "SegmentedImage Merge" begin
     # Set up 3 variables: test_graph, img, seg for use in tests
@@ -87,6 +87,6 @@ include("../src/merge.jl")
 
 
     # Test 6. merge
-    seg2 = merge(seg, 40)  # 40 > colordiff(1.0, 2.0)
+    seg2 = merge_segments(seg, 40)  # 40 > colordiff(1.0, 2.0)
     @test segment_labels(seg2) == [1]
 end
