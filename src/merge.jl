@@ -39,7 +39,7 @@ function merge(seg::SegmentedImage, threshold::Number)::SegmentedImage
         e, valid = pop!(edge_heap)
         if valid
             # Invalidate all edges touching this edge.
-            invalidate_neighbors!(g, edge_heap, e)
+            invalidate_neighbors!(edge_heap, g, e)
 
             # Merge the two nodes into one (keep e.dst, obsolete e.src)
             merge_node_props!(g, e)
@@ -170,7 +170,7 @@ Finds the nodes neighboring `e` in graph `g`, creates edges from them to its
 
 # Arguments:
 * `g`         : a [`MetaGraph`](@ref)
-* `e`         : a [`AbstractEdge`](@ref)
+* `e`         : an [`AbstractEdge`](@ref)
 """
 function add_neighboring_edges!(g::MetaGraph, e::AbstractEdge)::Array{Edge}
     edges = []
@@ -178,7 +178,7 @@ function add_neighboring_edges!(g::MetaGraph, e::AbstractEdge)::Array{Edge}
     for n in setdiff(edge_neighbors, e.src, e.dst) 
         edge = Edge(e.dst, n)
         add_edge!(g, edge)
-        set_prop!(g, edge, :weight, _weight_mean_color(g, e.dst, n))
+        set_prop!(g, edge, :weight, _weight_mean_color(g, edge))
         push!(edges, edge)
     end
 
@@ -187,16 +187,16 @@ end
 
 
 """
-    invalidate_neighbors!(g, h, e)
+    invalidate_neighbors!(edge_heap, g, e)
 
 Finds the neighbors of `e` in graph `g` and invalidates them in `edge_heap`.
 
 # Arguments:
-* `g`         : a [`MetaGraph`](@ref)
 * `edge_heap` : a [`MutableBinaryHeap`](@ref)
-* `e`         : a [`AbstractEdge`](@ref)
+* `g`         : a [`MetaGraph`](@ref)
+* `e`         : an [`AbstractEdge`](@ref)
 """
-function invalidate_neighbors!(g::MetaGraph, edge_heap::MutableBinaryHeap, e::AbstractEdge)
+function invalidate_neighbors!(edge_heap::MutableBinaryHeap, g::MetaGraph, e::AbstractEdge)
     function invalidate(src, dst)
         for n in setdiff(Set(neighbors(g, src)), dst)
             edge = Edge(src, n)
@@ -212,18 +212,17 @@ end
 """
     weight = _weight_mean_color(g, v1, v2))
 
-Compute the weight of an edge between vertices `v1` and `v2` in 
-[`MetaGraph`](@ref) `g` as the difference in mean colors of each vertex.
+Compute the weight of an edge in [`MetaGraph`](@ref) `g` as the difference 
+in mean colors of each vertex.
 
 # Arguments:
 * `g`         : a [`MetaGraph`](@ref)
-* `v1`         : a vertex 
-* `v2`         : a vertex 
+* `e`         : an [`AbstractEdge`](@ref)
 """
-function _weight_mean_color(g::MetaGraph, v1::Int, v2::Int)::Real
+function _weight_mean_color(g::MetaGraph, e::AbstractEdge)::Real
     return colordiff(
-        get_prop(g, v1, :mean_color), 
-        get_prop(g, v2, :mean_color)
+        get_prop(g, e.src, :mean_color), 
+        get_prop(g, e.dst, :mean_color)
     )
 end
 
