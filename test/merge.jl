@@ -1,8 +1,6 @@
 include("../src/merge.jl")
 
 @testset "SegmentedImage Merge" begin
-    # https://github.com/scikit-image/scikit-image/blob/master/skimage/future/graph/tests/test_rag.py
-
     # Set up 3 variables: test_graph, img, seg for use in tests
     g = MetaGraph(6)
 
@@ -22,7 +20,7 @@ include("../src/merge.jl")
     img = map(Gray, img)
     seg = fast_scanning(img, 0.5)
     test_graph = copy(g)
-    # setup done
+    # end setup
 
     # Test 1. Merge 2 nodes
     g = copy(test_graph)
@@ -66,13 +64,13 @@ include("../src/merge.jl")
     added = add_neighboring_edges!(g, Edge(1, 2))
 
     @test length(added) == 2
-    @test has_edge(g, Edge(2, 3)) == true
-    @test has_edge(g, Edge(2, 6)) == true
+    @test has_edge(g, Edge(2, 3))
+    @test has_edge(g, Edge(2, 6))
 
     # Test 4. seg to graph 
     g = seg_to_graph(seg)
     @test length(edges(g)) == 1
-    @test length(MetaGraphs.vertices(g)) == 2
+    @test length(vertices(g)) == 2
     @test has_edge(g, Edge(1, 2))
     @test haskey(props(g, Edge(1, 2)), :weight)
     @test get_prop(g, Edge(1, 2), :weight) ≈ Colors.colordiff(1.0, 2.0)

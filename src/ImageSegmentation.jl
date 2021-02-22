@@ -5,7 +5,6 @@ import Base: show
 using LinearAlgebra, Statistics
 using Images, DataStructures, StaticArrays, ImageFiltering, LightGraphs, SimpleWeightedGraphs, RegionTrees, Distances, StaticArrays, Clustering, MetaGraphs
 import Clustering: kmeans, fuzzy_cmeans
-import Colors
 
 include("compat.jl")
 include("core.jl")

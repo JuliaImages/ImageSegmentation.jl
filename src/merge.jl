@@ -1,10 +1,3 @@
-using DataStructures # MutableBinaryHeap not found without this line. Why?
-
-# There's a module-level conflict with RegionTrees.vertices. 
-# Is there a better way to resolve it?
-import MetaGraphs
-vertices = MetaGraphs.vertices
-
 """
     seg_img = merge(seg, threshold)
 
@@ -29,15 +22,16 @@ function merge(seg::SegmentedImage, threshold::Number)::SegmentedImage
     # is valid. All edges are initially valid. The reason for this is that heap
     # removal would be expensive, so instead, we invalidate the edge entry in the
     # heap. 
-    function weight(t::Tuple{Edge{Int64}, Bool})::Real
+    function weight(t::Tuple{Edge{Int}, Bool})::Real
         return has_prop(g, t[1], :weight) ?  get_prop(g, t[1], :weight) : 0
     end
     
-    edge_heap = MutableBinaryHeap{Tuple{Edge{Int64}, Bool}}(Base.By(weight), [])
-    sizehint!(edge_heap, 3 * length(edges(g)))  # Overkill, or not enough?
-    for e in edges(g)
-        handle = push!(edge_heap, (e, true))
-        set_prop!(g, e, :handle, handle)
+    edge_heap = MutableBinaryHeap{Tuple{Edge{Int}, Bool}}(Base.By(weight),
+        [(e, true) for e in edges(g)]
+    )
+    sizehint!(edge_heap, 3 * length(edge_heap))  # Overkill, or not enough?
+    for n in edge_heap.nodes
+        set_prop!(g, n.value[1], :handle, n.handle)
     end
 
     # Merge all edges less than threshold
@@ -45,7 +39,7 @@ function merge(seg::SegmentedImage, threshold::Number)::SegmentedImage
         e, valid = pop!(edge_heap)
         if valid
             # Invalidate all edges touching this edge.
-            invalidate_neighbors(g, edge_heap, e)
+            invalidate_neighbors!(g, edge_heap, e)
 
             # Merge the two nodes into one (keep e.dst, obsolete e.src)
             merge_node_props!(g, e)
@@ -82,7 +76,7 @@ color difference.
 * `seg`         : a [`SegmentedImage`](@ref)
 """
 function seg_to_graph(seg::SegmentedImage)::MetaGraph
-    weight(i, j) = Colors.colordiff(segment_mean(seg, i), segment_mean(seg, j))
+    weight(i, j) = colordiff(segment_mean(seg, i), segment_mean(seg, j))
     rag, _ = region_adjacency_graph(seg, weight)
 
     g = MetaGraph(rag)
@@ -129,7 +123,7 @@ function resegment(seg::SegmentedImage, g::MetaGraph)::SegmentedImage
 
     # Re-number our labels so that they are dense (no gaps) and
     # construct the other objects SegmentedImage needs.
-    means, px_counts = Dict{Int64, Colorant}(), Dict{Int64, Int64}() 
+    means, px_counts = Dict{Int, Colorant}(), Dict{Int, Int}() 
     for (i, v) in enumerate(remaining)
         ix = findall(x -> x == v, px_labels)
         px_labels[ix] .= i
@@ -193,7 +187,7 @@ end
 
 
 """
-    invalidate_neighbors(g, h, e)
+    invalidate_neighbors!(g, h, e)
 
 Finds the neighbors of `e` in graph `g` and invalidates them in `edge_heap`.
 
@@ -202,7 +196,7 @@ Finds the neighbors of `e` in graph `g` and invalidates them in `edge_heap`.
 * `edge_heap` : a [`MutableBinaryHeap`](@ref)
 * `e`         : a [`AbstractEdge`](@ref)
 """
-function invalidate_neighbors(g::MetaGraph, edge_heap::MutableBinaryHeap, e::AbstractEdge)
+function invalidate_neighbors!(g::MetaGraph, edge_heap::MutableBinaryHeap, e::AbstractEdge)
     function invalidate(src, dst)
         for n in setdiff(Set(neighbors(g, src)), dst)
             edge = Edge(src, n)
@@ -227,7 +221,7 @@ Compute the weight of an edge between vertices `v1` and `v2` in
 * `v2`         : a vertex 
 """
 function _weight_mean_color(g::MetaGraph, v1::Int, v2::Int)::Real
-    return Colors.colordiff(
+    return colordiff(
         get_prop(g, v1, :mean_color), 
         get_prop(g, v2, :mean_color)
     )

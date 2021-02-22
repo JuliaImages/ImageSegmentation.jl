@@ -1,4 +1,6 @@
-using ImageSegmentation, Images, Test, SimpleWeightedGraphs, LightGraphs, StaticArrays, RegionTrees, MetaGraphs, Colors
+using ImageSegmentation, Images, Test, SimpleWeightedGraphs, LightGraphs, StaticArrays, DataStructures
+using RegionTrees: isleaf, Cell, split! 
+using MetaGraphs: MetaGraph, clear_props!, get_prop, has_prop, set_prop!, props, vertices
 
 using Documenter
 doctest(ImageSegmentation, manual = false)
