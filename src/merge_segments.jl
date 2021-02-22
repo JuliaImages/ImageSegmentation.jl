@@ -172,8 +172,8 @@ Finds the nodes neighboring `e` in graph `g`, creates edges from them to its
 * `g`         : a [`MetaGraph`](@ref)
 * `e`         : an [`AbstractEdge`](@ref)
 """
-function add_neighboring_edges!(g::MetaGraph, e::AbstractEdge)::Array{Edge}
-    edges = []
+function add_neighboring_edges!(g::MetaGraph, e::AbstractEdge)
+    edges = Edge{eltype(e)}[]
     edge_neighbors = union(Set(neighbors(g, e.src)), Set(neighbors(g, e.dst)))
     for n in setdiff(edge_neighbors, e.src, e.dst) 
         edge = Edge(e.dst, n)
@@ -225,5 +225,4 @@ function _weight_mean_color(g::MetaGraph, e::AbstractEdge)::Real
         get_prop(g, e.dst, :mean_color)
     )
 end
-
 
