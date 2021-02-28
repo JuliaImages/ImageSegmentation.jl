@@ -1,6 +1,6 @@
 name = "ImageSegmentation"
 uuid = "80713f31-8817-5129-9cf8-209ff8fb23e1"
-version = "1.4.8"
+version = "1.5.0"
 
 [deps]
 Clustering = "aaaa29a8-35af-508c-8bc3-b662a17a0fe5"
