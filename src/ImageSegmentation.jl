@@ -3,8 +3,13 @@ module ImageSegmentation
 import Base: show
 
 using LinearAlgebra, Statistics
-using Images, DataStructures, StaticArrays, ImageFiltering, LightGraphs, SimpleWeightedGraphs, RegionTrees, Distances, StaticArrays, Clustering, MetaGraphs
+using DataStructures, StaticArrays, ImageCore, ImageFiltering, ImageMorphology, LightGraphs, SimpleWeightedGraphs, RegionTrees, Distances, StaticArrays, Clustering, MetaGraphs
 import Clustering: kmeans, fuzzy_cmeans
+
+accum(::Type{T}) where {T<:Integer} = Int
+accum(::Type{Float32})    = Float32
+accum(::Type{T}) where {T<:Real} = Float64
+accum(::Type{C}) where {C<:Colorant} = base_colorant_type(C){accum(eltype(C))}
 
 include("compat.jl")
 include("core.jl")
