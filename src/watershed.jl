@@ -31,7 +31,7 @@ Parameters:
 
 # Example
 
-```jldoctest; setup = :(using Images, ImageSegmentation)
+```jldoctest; setup = :(using ImageCore, ImageMorphology, ImageSegmentation)
 julia> seeds = falses(100, 100); seeds[50, 25] = true; seeds[50, 75] = true;
 
 julia> dists = distance_transform(feature_transform(seeds)); # calculate distances from seeds

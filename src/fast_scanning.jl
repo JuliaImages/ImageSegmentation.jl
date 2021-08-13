@@ -40,7 +40,7 @@ Segments the N-D image using a fast scanning algorithm and returns a
 
 # Examples:
 
-```jldoctest; setup = :(using Images, ImageSegmentation)
+```jldoctest; setup = :(using ImageCore, ImageMorphology, ImageSegmentation)
 julia> img = zeros(Float64, (3,3));
 
 julia> img[2,:] .= 0.5;
