@@ -43,7 +43,7 @@ Returns true if `img` is homogeneous.
 
 # Examples
 
-```jldoctest; setup = :(using Images, ImageSegmentation)
+```jldoctest; setup = :(using ImageCore, ImageMorphology, ImageSegmentation)
 julia> img = 0.1*rand(6, 6);
 
 julia> img[4:end, 4:end] .+= 10;
@@ -101,7 +101,7 @@ Returns true if `img` is homogeneous.
 
 # Examples
 
-```jldoctest; setup = :(using Images, ImageSegmentation)
+```jldoctest; setup = :(using ImageCore, ImageMorphology, ImageSegmentation)
 julia> img = 0.1*rand(6, 6);
 
 julia> img[4:end, 4:end] .+= 10;

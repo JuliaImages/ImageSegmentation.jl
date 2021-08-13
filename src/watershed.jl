@@ -31,7 +31,7 @@ Parameters:
 
 # Example
 
-```jldoctest; setup = :(using Images, ImageSegmentation)
+```jldoctest; setup = :(using ImageCore, ImageMorphology, ImageSegmentation)
 julia> seeds = falses(100, 100); seeds[50, 25] = true; seeds[50, 75] = true;
 
 julia> dists = distance_transform(feature_transform(seeds)); # calculate distances from seeds
@@ -46,7 +46,7 @@ julia> labels_map(results); # labels of segmented image
 function watershed(img::AbstractArray{T, N},
                    markers::AbstractArray{S,N};
                    mask::AbstractArray{Bool, N}=fill(true, axes(img)),
-                   compactness::Real = 0.0) where {T<:Images.NumberLike, S<:Integer, N}
+                   compactness::Real = 0.0) where {T<:ImageCore.NumberLike, S<:Integer, N}
 
     if axes(img) != axes(markers)
         error("image size doesn't match marker image size")
@@ -149,7 +149,7 @@ Suppresses all minima in grayscale image whose depth is less than h.
 
 H-minima transform is defined as the reconstruction by erosion of (img + h) by img. See Morphological image analysis by Soille pg 170-172.
 """
-function hmin_transform(img::Array{T, N}, h::Real) where {T<:Images.NumberLike, N}
+function hmin_transform(img::Array{T, N}, h::Real) where {T<:ImageCore.NumberLike, N}
     out = img.+h
     while true
         temp = max.(img, erode(out))

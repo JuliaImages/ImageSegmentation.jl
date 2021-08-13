@@ -3,7 +3,7 @@ module ImageSegmentation
 import Base: show
 
 using LinearAlgebra, Statistics
-using Images, DataStructures, StaticArrays, ImageFiltering, LightGraphs, SimpleWeightedGraphs, RegionTrees, Distances, StaticArrays, Clustering, MetaGraphs
+using DataStructures, StaticArrays, ImageCore, ImageFiltering, ImageMorphology, LightGraphs, SimpleWeightedGraphs, RegionTrees, Distances, StaticArrays, Clustering, MetaGraphs
 import Clustering: kmeans, fuzzy_cmeans
 
 include("compat.jl")

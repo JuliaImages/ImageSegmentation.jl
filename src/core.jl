@@ -1,3 +1,8 @@
+accum_type(::Type{T}) where {T<:Integer} = Int
+accum_type(::Type{Float32})    = Float32
+accum_type(::Type{T}) where {T<:Real} = Float64
+accum_type(::Type{C}) where {C<:Colorant} = base_colorant_type(C){accum_type(eltype(C))}
+
 """
 `SegmentedImage` type contains the index-label mapping, assigned labels,
 segment mean intensity and pixel count of each segment.

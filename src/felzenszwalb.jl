@@ -80,7 +80,7 @@ function felzenszwalb(edges::Array{ImageEdge}, num_vertices::Int, k::Real, min_s
     return index_map, num_sets
 end
 
-meantype(::Type{T}) where T = typeof(zero(Images.accum(T))/2)
+meantype(::Type{T}) where T = typeof(zero(accum_type(T))/2)
 
 function felzenszwalb(img::AbstractArray{T, 2}, k::Real, min_size::Int = 0) where T<:Union{Real,Color}
 

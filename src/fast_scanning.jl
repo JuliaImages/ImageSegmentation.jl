@@ -1,6 +1,6 @@
-sharpness(img::AbstractArray{CT,N}) where {CT<:Images.NumberLike,N} = var(imfilter(img, Kernel.Laplacian(ntuple(i->true, Val(N)))))
+sharpness(img::AbstractArray{CT,N}) where {CT<:ImageCore.NumberLike,N} = var(imfilter(img, Kernel.Laplacian(ntuple(i->true, Val(N)))))
 
-function adaptive_thres(img::AbstractArray{CT,N}, block::NTuple{N,Int}) where {CT<:Images.NumberLike,N}
+function adaptive_thres(img::AbstractArray{CT,N}, block::NTuple{N,Int}) where {CT<:ImageCore.NumberLike,N}
     threshold = zeros(Float64, block)
     block_length = CartesianIndex(ntuple(i->ceil(Int,length(axes(img,i))/block[i]),Val(N)))
     net_s = sharpness(img)
@@ -20,7 +20,7 @@ getscalar(A::AbstractArray{T,N}, i::CartesianIndex{N}, block_length::CartesianIn
 
 getscalar(a::Real, i...) = a
 
-fast_scanning(img::AbstractArray{CT,N}, block::NTuple{N,Int} = ntuple(i->4,Val(N))) where {CT<:Images.NumberLike,N} =
+fast_scanning(img::AbstractArray{CT,N}, block::NTuple{N,Int} = ntuple(i->4,Val(N))) where {CT<:ImageCore.NumberLike,N} =
     fast_scanning(img, adaptive_thres(img, block))
 
 """
@@ -40,7 +40,7 @@ Segments the N-D image using a fast scanning algorithm and returns a
 
 # Examples:
 
-```jldoctest; setup = :(using Images, ImageSegmentation)
+```jldoctest; setup = :(using ImageCore, ImageMorphology, ImageSegmentation)
 julia> img = zeros(Float64, (3,3));
 
 julia> img[2,:] .= 0.5;

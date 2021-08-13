@@ -1,5 +1,5 @@
 
-default_diff_fn(c1::CT1,c2::CT2) where {CT1<:Union{Colorant,Real}, CT2<:Union{Colorant,Real}} = sqrt(sum(abs2,(c1)-Images.accum(CT2)(c2)))
+default_diff_fn(c1::CT1,c2::CT2) where {CT1<:Union{Colorant,Real}, CT2<:Union{Colorant,Real}} = sqrt(sum(abs2,(c1)-accum_type(CT2)(c2)))
 
 """
     seg_img = seeded_region_growing(img, seeds, [kernel_dim], [diff_fn])
@@ -30,7 +30,7 @@ and returns a [`SegmentedImage`](@ref) containing information about the segments
 
 # Examples
 
-```jldoctest; setup = :(using Images, ImageSegmentation)
+```jldoctest; setup = :(using ImageCore, ImageMorphology,ImageSegmentation)
 julia> img = zeros(Gray{N0f8},4,4);
 
 julia> img[2:4,2:4] .= 1;
@@ -213,7 +213,7 @@ and returns a [`SegmentedImage`](@ref) containing information about the segments
 
 # Examples
 
-```jldoctest; setup = :(using Images, ImageSegmentation)
+```jldoctest; setup = :(using ImageCore, ImageMorphology, ImageSegmentation)
 julia> img = zeros(Gray{N0f8},4,4);
 
 julia> img[2:4,2:4] .= 1;

@@ -1,5 +1,5 @@
 function img_to_data(img::AbstractArray{T,N}) where T<:Colorant where N
-    AT = Images.accum(T)
+    AT = accum_type(T)
     aimg = AT.(img)
     pimg = parent(aimg)
     ch = channelview(pimg)
