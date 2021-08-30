@@ -215,7 +215,7 @@ and returns a [`SegmentedImage`](@ref) containing information about the segments
 # Arguments:
 * `img`             :  N-D image to be segmented (arbitrary axes are allowed)
 * `threshold`       :  Upper bound of the difference measure (δ) for considering
-                       pixel into same segment
+                       pixel as the same segment
 * `kernel_dim`      :  (Optional) `Vector{Int}` having length N or a `NTuple{N,Int}`
                        whose ith element is an odd positive integer representing
                        the length of the ith edge of the N-orthotopic neighbourhood
@@ -257,9 +257,13 @@ end
 function unseeded_region_growing(img::AbstractArray{CT,N}, threshold::Real, neighbourhood::Function, diff_fn = default_diff_fn) where {CT<:Colorant,N}
     TM = meantype(CT)
 
+    # Fast linear<->cartesian indexing lookup
+    cil = reshape(CartesianIndices(img), :)
+    lic = LinearIndices(img)
+
     # Required data structures
     result                  =   fill(-1, axes(img))                             # Array to store labels
-    neighbours              =   PriorityQueue{CartesianIndex{N},Float64}()      # Priority Queue containing boundary pixels with δ as the priority
+    neighbours              =   PriorityQueue{Int,Float32}()                    # Priority Queue containing boundary pixels with δ as the priority
     region_means            =   Dict{Int, TM}()                                 # A map containing (label, mean) pairs
     region_pix_count        =   Dict{Int, Int}()                                # A map containing (label, pixel_count) pairs
     labels                  =   Vector{Int}()                                   # Vector containing assigned labels
@@ -274,12 +278,12 @@ function unseeded_region_growing(img::AbstractArray{CT,N}, threshold::Real, neig
     # Enqueue neighouring points of `start_point`
     for p in neighbourhood(start_point)
         if p != start_point && checkbounds(Bool, img, p) && result[p] == -1
-            enqueue!(neighbours, p, diff_fn(region_means[result[start_point]], img[p]))
+            enqueue!(neighbours, lic[p], diff_fn(region_means[result[start_point]], img[p]))
         end
     end
 
     while !isempty(neighbours)
-        point = dequeue!(neighbours)
+        point = cil[dequeue!(neighbours)]
         δ = Inf
         minlabel = -1
         pixelval = img[point]
@@ -325,7 +329,7 @@ function unseeded_region_growing(img::AbstractArray{CT,N}, threshold::Real, neig
         # Enqueue neighbours of `point`
         for p in neighbourhood(point)
             if checkbounds(Bool, img, p) && result[p] == -1
-                if haskey(neighbours, p)
+                if haskey(neighbours, lic[p])
                     continue
                 end
                 δ = Inf
@@ -334,7 +338,7 @@ function unseeded_region_growing(img::AbstractArray{CT,N}, threshold::Real, neig
                         δ = min(δ, diff_fn(region_means[result[tp]], img[p]))
                     end
                 end
-                enqueue!(neighbours, p, δ)
+                enqueue!(neighbours, lic[p], δ)
             end
         end
 
