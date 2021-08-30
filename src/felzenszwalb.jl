@@ -1,36 +1,17 @@
 """
-```
-segments                = felzenszwalb(img, k, [min_size])
-index_map, num_segments = felzenszwalb(edges, num_vertices, k, [min_size])
-```
+    index_map, num_segments = felzenszwalb(edges, num_vertices, k, min_size=0)
 
-Segments an image using Felzenszwalb's graph-based algorithm. The function can be used in either of two ways -
-
-1. `segments = felzenszwalb(img, k, [min_size])`
-
-Segments an image using Felzenszwalb's segmentation algorithm and returns the result as `SegmentedImage`. The algorithm uses
-euclidean distance in color space as edge weights for the region adjacency graph.
-
-Parameters:
--    img            = input image
--    k              = Threshold for region merging step. Larger threshold will result in bigger segments.
--    min_size       = Minimum segment size
-
-2. `index_map, num_segments = felzenszwalb(edges, num_vertices, k, [min_size])`
-
-Segments an image represented as Region Adjacency Graph(RAG) using Felzenszwalb's segmentation algorithm. Each pixel/region
- corresponds to a node in the graph and weights on each edge measure the dissimilarity between pixels.
+Segment an image represented as Region Adjacency Graph(RAG) using Felzenszwalb's segmentation algorithm. Each pixel/region
+corresponds to a node in the graph and weights on each edge measure the dissimilarity between pixels.
 The function returns the number of segments and index mapping from nodes of the RAG to segments.
 
 Parameters:
--    edges          = Array of edges in RAG. Each edge is represented as `ImageEdge`.
--    num_vertices   = Number of vertices in RAG
--    k              = Threshold for region merging step. Larger threshold will result in bigger segments.
--    min_size       = Minimum segment size
-
-
+- `edges`:        Array of edges in RAG. Each edge is represented as `ImageEdge`.
+- `num_vertices`: Number of vertices in RAG
+- `k`:            Threshold for region merging step. Larger threshold will result in bigger segments.
+- `min_size`:     Minimum segment size (in # pixels)
 """
-function felzenszwalb(edges::Array{ImageEdge}, num_vertices::Int, k::Real, min_size::Int = 0)
+function felzenszwalb(edges::Array{ImageEdge}, num_vertices::Int, k::Float64, min_size::Int = 0)
 
     num_edges = length(edges)
     G = IntDisjointSets(num_vertices)
@@ -61,7 +42,7 @@ function felzenszwalb(edges::Array{ImageEdge}, num_vertices::Int, k::Real, min_s
         end
     end
 
-    segments = OrderedSet()
+    segments = OrderedSet{Int}()
     for i in 1:num_vertices
         push!(segments, find_root!(G, i))
     end
@@ -72,36 +53,59 @@ function felzenszwalb(edges::Array{ImageEdge}, num_vertices::Int, k::Real, min_s
         segments2index[s] = i
     end
 
-    index_map = Array{Int}(undef, num_vertices)
+    index_map = Vector{Int}(undef, num_vertices)
     for i in 1:num_vertices
         index_map[i] = segments2index[find_root!(G, i)]
     end
 
     return index_map, num_sets
 end
+felzenszwalb(edges::Array{ImageEdge}, num_vertices::Integer, k::Real, min_size::Integer = 0) =
+    felzenszwalb(edges, convert(Int, num_vertices)::Int, convert(Float64, k)::Float64, convert(Int, min_size)::Int)
 
 meantype(::Type{T}) where T = typeof(zero(accum_type(T))/2)
 
-function felzenszwalb(img::AbstractArray{T, 2}, k::Real, min_size::Int = 0) where T<:Union{Real,Color}
+"""
+    segments = felzenszwalb(img, k, [min_size])
 
-    rows, cols = size(img)
-    num_vertices = rows*cols
-    num_edges = 4*rows*cols - 3*rows - 3*cols + 2
-    edges = Array{ImageEdge}(undef, num_edges)
+Segment an image using Felzenszwalb's segmentation algorithm and returns the result as `SegmentedImage`.
+The algorithm uses euclidean distance in color space as edge weights for the region adjacency graph.
 
-    R = CartesianIndices(size(img))
-    I1, Iend = first(R), last(R)
-    num = 1
+Parameters:
+- `img`:      input image
+- `k`:        Threshold for region merging step. Larger threshold will result in bigger segments.
+- `min_size`: Minimum segment size (in # pixels)
+"""
+function felzenszwalb(img::AbstractArray{T}, k::Real, min_size::Int = 0) where T<:Union{Real,Color}
+
+    sz = size(img)
+    num_vertices = prod(sz)
+
+    R = CartesianIndices(img)
+    L = LinearIndices(img)
+    Ibegin, Iend = first(R), last(R)
+    I1 = _oneunit(Ibegin)
+
+    # Compute the number of entries per pixel (other than at the image edges)
+    num_edges = 0
+    for I in _colon(-I1, I1)
+        I >= zero(I1) && continue
+        num_edges += 1
+    end
+    num_edges *= num_vertices   # now the number for the whole image
+    edges = Vector{ImageEdge}(undef, num_edges)
+
+    num = 0
     for I in R
         imgI = img[I]
-        for J in _colon(max(I1, I-I1), min(Iend, I+I1))
+        for J in _colon(max(Ibegin, I-I1), min(Iend, I+I1))
             if I >= J
                 continue
             end
-            edges[num] = ImageEdge((I[2]-1)*rows+I[1], (J[2]-1)*rows+J[1], sqrt(sum(abs2,(img[I])-meantype(T)(img[J]))))
-            num += 1
+            edges[num+=1] = ImageEdge(L[I], L[J], sqrt(abs2(imgI-meantype(T)(img[J]))))
         end
     end
+    deleteat!(edges, num+1:num_edges)   # compensate for the ones we were missing at the image edges
 
     index_map, num_segments = felzenszwalb(edges, num_vertices, k, min_size)
 
@@ -110,12 +114,10 @@ function felzenszwalb(img::AbstractArray{T, 2}, k::Real, min_size::Int = 0) wher
     region_means        = Dict{Int, meantype(T)}()
     region_pix_count    = Dict{Int, Int}()
 
-    for j in axes(img, 2)
-        for i in axes(img, 1)
-            result[i, j] = index_map[(j-1)*rows+i]
-            region_pix_count[result[i,j]] = get(region_pix_count, result[i, j], 0) + 1
-            region_means[result[i,j]] = get(region_means, result[i,j], zero(meantype(T))) + (img[i, j] - get(region_means, result[i,j], zero(meantype(T))))/region_pix_count[result[i,j]]
-        end
+    for I in R
+        result[I] = index_map[L[I]]
+        region_pix_count[result[I]] = get(region_pix_count, result[I], 0) + 1
+        region_means[result[I]] = get(region_means, result[I], zero(meantype(T))) + (img[I] - get(region_means, result[I], zero(meantype(T))))/region_pix_count[result[I]]
     end
 
     return SegmentedImage(result, labels, region_means, region_pix_count)

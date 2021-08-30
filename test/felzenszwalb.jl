@@ -1,4 +1,9 @@
 @testset "Felzenszwalb" begin
+    if Base.VERSION < v"1.4.0"
+        _only(c) = (@assert length(c) == 1; c[1])
+    else
+        _only = only
+    end
 
     img = zeros(Gray{N0f8}, 10, 10)
     img[2:3, 2:3] .= 0.2
@@ -74,4 +79,18 @@
     @test result.segment_pixel_count[result.image_indexmap[1,1]] == 92
     @test result.segment_pixel_count[result.image_indexmap[2,2]] == 4
     @test result.segment_pixel_count[result.image_indexmap[5,5]] == 4
+
+    img = falses(10, 10, 10)
+    img[2:3, 2:3, 2:3] .= true
+    img[5:6, 5:6, 5:6] .= true
+    result = felzenszwalb(img, 1, 2)
+    @test result.segment_labels == collect(1:3)
+    ibkg = result.image_indexmap[1, 1, 1]
+    i = _only(unique(result.image_indexmap[2:3, 2:3, 2:3]))
+    @test i != ibkg
+    result.image_indexmap[2:3, 2:3, 2:3] .= ibkg
+    j = _only(unique(result.image_indexmap[5:6, 5:6, 5:6]))
+    @test j != ibkg && j != i
+    result.image_indexmap[5:6, 5:6, 5:6] .= ibkg
+    @test all(==(ibkg), result.image_indexmap)
 end
