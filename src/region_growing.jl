@@ -60,7 +60,7 @@ function seeded_region_growing(img::AbstractArray{CT,N}, seeds::AbstractVector{<
         isodd(dim) || error("Dimensions of the kernel must be odd")
     end
     pt = CartesianIndex(ntuple(i->kernel_dim[i]÷2, N))
-    neighbourhood_gen(t) = c->CartesianIndices(_colon(c-t,c+t))
+    neighbourhood_gen(t) = c->_colon(c-t,c+t)
     seeded_region_growing(img, seeds, neighbourhood_gen(pt), diff_fn)
 end
 
@@ -250,7 +250,7 @@ function unseeded_region_growing(img::AbstractArray{CT,N}, threshold::Real,
         isodd(dim) || error("Dimensions of the kernel must be odd")
     end
     pt = CartesianIndex(ntuple(i->kernel_dim[i]÷2, N))
-    neighbourhood_gen(t) = c->CartesianIndices(_colon(c-t,c+t))
+    neighbourhood_gen(t) = c->_colon(c-t,c+t)
     unseeded_region_growing(img, threshold, neighbourhood_gen(pt), diff_fn)
 end
 

@@ -93,7 +93,8 @@ function felzenszwalb(img::AbstractArray{T, 2}, k::Real, min_size::Int = 0) wher
     I1, Iend = first(R), last(R)
     num = 1
     for I in R
-        for J in CartesianIndices(_colon(max(I1, I-I1), min(Iend, I+I1)))
+        imgI = img[I]
+        for J in _colon(max(I1, I-I1), min(Iend, I+I1))
             if I >= J
                 continue
             end

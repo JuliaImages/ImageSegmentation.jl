@@ -95,7 +95,7 @@ function region_adjacency_graph(s::SegmentedImage, weight_fn::Function)
         while !isempty(t)
             temp = pop!(t)
             visited[temp] = true
-            for J in CartesianIndices(_colon(max(Ibegin, temp-I1), min(Iend, temp+I1)))
+            for J in _colon(max(Ibegin, temp-I1), min(Iend, temp+I1))
                 if s.image_indexmap[temp] != s.image_indexmap[J]
                     push!(n,s.image_indexmap[J])
                 elseif !visited[J]
@@ -268,7 +268,7 @@ end
 
 # Once Base has colon defined here we can replace this
 _colon(I::CartesianIndex{N}, J::CartesianIndex{N}) where N =
-    map((i,j) -> i:j, Tuple(I), Tuple(J))
+    CartesianIndices(map((i,j) -> i:j, Tuple(I), Tuple(J)))
 
 
 """
