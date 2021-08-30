@@ -4,8 +4,7 @@ using ImageFiltering
 
     img = zeros(100, 100)
     img[25:75, 25:75] .= 1
-
-    img, _ = magnitude_phase(img)
+    img[26:74, 26:74] .= 0
 
     markers = zeros(Int, size(img))
     markers[1, 1] = 1
@@ -45,7 +44,7 @@ using ImageFiltering
         # since this is using the compact algorithm with a high value for
         # compactness, the boundary between labels 1 and 2 should occur halfway
         # between the two markers
-        @test sum(labels .== 1) == sum(1:50) - 2
+        @test sum(labels .== 1) == sum(1:50)
     end
 
     @testset "h-minima transform" begin

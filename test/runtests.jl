@@ -1,4 +1,4 @@
-using ImageSegmentation, Images, Test, SimpleWeightedGraphs, LightGraphs, StaticArrays, DataStructures
+using ImageSegmentation, ImageCore, ImageFiltering, Test, SimpleWeightedGraphs, LightGraphs, StaticArrays, DataStructures
 using RegionTrees: isleaf, Cell, split!
 using MetaGraphs: MetaGraph, clear_props!, get_prop, has_prop, set_prop!, props, vertices
 

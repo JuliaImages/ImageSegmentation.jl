@@ -4,6 +4,14 @@ accum_type(::Type{T}) where {T<:Real}       = Float64
 accum_type(::Type{T}) where {T<:FixedPoint} = floattype(T)
 accum_type(::Type{C}) where {C<:Colorant}   = base_colorant_type(C){accum_type(eltype(C))}
 
+accum_type(val) = isa(val, Type) ? throw_accum_type(val) : convert(accum_type(typeof(val)), val)
+throw_accum_type(T) = error("type $T not supported in `accum_type`")
+
+_abs2(c::MathTypes) = c ⋅ c
+_abs2(x) = abs2(x)
+
+default_diff_fn(c1::CT1,c2::CT2) where {CT1<:Union{Colorant,Real}, CT2<:Union{Colorant,Real}} = sqrt(_abs2(c1-accum_type(c2)))
+
 """
 `SegmentedImage` type contains the index-label mapping, assigned labels,
 segment mean intensity and pixel count of each segment.
