@@ -5,6 +5,10 @@
   img[1:2,1:2] .= 2.0
   img[1:2,3:4] .= 3.0
   seg = fast_scanning(img, 0.5)
+  lbl = IndirectArray(seg)
+  @test lbl[1,1] != lbl[1,4] != lbl[4,4]
+  lbl = IndirectArray(freeze, seg)
+  @test lbl[1,1] != lbl[1,4] != lbl[4,4]
 
   @test labels_map(seg) == seg.image_indexmap
   @test segment_labels(seg) == seg.segment_labels
