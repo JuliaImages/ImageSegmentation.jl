@@ -52,7 +52,7 @@ julia> labels_map(seg)
 Albert Mehnert, Paul Jackaway (1997), "An improved seeded region growing algorithm",
 Pattern Recognition Letters 18 (1997), 1065-1071
 """
-function seeded_region_growing(img::AbstractArray{CT,N}, seeds::AbstractVector{Tuple{CartesianIndex{N},Int}},
+function seeded_region_growing(img::AbstractArray{CT,N}, seeds::AbstractVector{<:PairOrTuple{CartesianIndex{N},Int}},
     kernel_dim::Union{Vector{Int}, NTuple{N, Int}} = ntuple(i->3,N), diff_fn::Function = default_diff_fn) where {CT<:Union{Colorant,Real}, N}
     length(kernel_dim) == N || error("Dimension count of image and kernel_dim do not match")
     for dim in kernel_dim
@@ -64,10 +64,8 @@ function seeded_region_growing(img::AbstractArray{CT,N}, seeds::AbstractVector{T
     seeded_region_growing(img, seeds, neighbourhood_gen(pt), diff_fn)
 end
 
-function seeded_region_growing(img::AbstractArray{CT,N}, seeds::AbstractVector{Tuple{CartesianIndex{N},Int}},
-    neighbourhood::Function, diff_fn::Function = default_diff_fn) where {CT<:Union{Colorant,Real}, N}
-
-    _QUEUE_SZ = 10
+function seeded_region_growing(img::AbstractArray{CT,N}, seeds::AbstractVector{<:PairOrTuple{CartesianIndex{N},Int}},
+    neighbourhood::NF, diff_fn::DF = default_diff_fn) where {CT<:Union{Colorant,Real}, N, NF, DF}
 
     # Check if labels are positive integers
     for seed in seeds
@@ -76,23 +74,26 @@ function seeded_region_growing(img::AbstractArray{CT,N}, seeds::AbstractVector{T
 
     TM = meantype(CT)
 
+    # Fast linear<->cartesian indexing lookup
+    cil = reshape(CartesianIndices(img), :)
+    lic = LinearIndices(img)
+
     # Required data structures
     result              =   fill(-1, axes(img))                                     # Array to store labels
-    nhq                 =   Queue{CartesianIndex{N}}(_QUEUE_SZ)                     # Neighbours holding queue
-    pq                  =   PriorityQueue{CartesianIndex{N}, Float64}()             # Priority Queue to hold the pixels of same δ value
-    labelsq             =   Queue{Int}(_QUEUE_SZ)                                   # Queue to hold labels
-    holdingq            =   Queue{CartesianIndex{N}}(_QUEUE_SZ)                     # Queue to hold points corresponding to the labels in `labelsq`
+    nhq                 =   CartesianIndex{N}[]                                     # Neighbours holding queue
+    pq                  =   PriorityQueue{Int, Float32}()                           # Priority Queue for differences
+    holdingq            =   Pair{CartesianIndex{N},Int}[]                           # Ready-to-assign labels
     region_means        =   Dict{Int, TM}()                                         # A map containing (label, mean) pairs
     region_pix_count    =   Dict{Int, Int}()                                        # A map containing (label, pixel_count) pairs
-    labels              =   Vector{Int}()                                           # A vector containing list of labels
+    labels              =   Int[]                                                   # A vector containing list of labels
 
     # Labelling initial seeds and initialising `region_means` and `region_pix_count`
-    for seed in seeds
-        result[seed[1]] = seed[2]
-        region_pix_count[seed[2]] = get(region_pix_count, seed[2], 0) + 1
-        region_means[seed[2]] = get(region_means, seed[2], zero(TM)) + (img[seed[1]] - get(region_means, seed[2], zero(TM)))/(region_pix_count[seed[2]])
-        if ! (seed[2] in labels)
-            push!(labels, seed[2])
+    for (p, idx) in seeds
+        result[p] = idx
+        region_pix_count[idx] = get(region_pix_count, idx, 0) + 1
+        region_means[idx] = get(region_means, idx, zero(TM)) + (img[p] - get(region_means, idx, zero(TM)))/(region_pix_count[idx])
+        if idx ∉ labels
+            push!(labels, idx)
         end
     end
 
@@ -105,10 +106,10 @@ function seeded_region_growing(img::AbstractArray{CT,N}, seeds::AbstractVector{T
     =#
 
     # Enqueue all the neighbours of seeds into `nhq`
-    for seed in seeds
-        for point in neighbourhood(seed[1])
-            if point != seed[1] && checkbounds(Bool, img, point) && result[point] == -1
-                enqueue!(nhq, point)
+    for (p, _) in seeds
+        for point in neighbourhood(p)
+            if point != p && checkbounds(Bool, img, point) && result[point] == -1
+                push!(nhq, point)
                 @inbounds result[point] = -2
             end
         end
@@ -116,70 +117,82 @@ function seeded_region_growing(img::AbstractArray{CT,N}, seeds::AbstractVector{T
 
     while !isempty(pq) || !isempty(nhq)
 
-        while !isempty(nhq)
+        for p in nhq
             # For every neighbouring point, get the minimum δ
-            p = dequeue!(nhq)
+            @inbounds imgp = img[p]
             δ = Inf
             for point in neighbourhood(p)
-                if point != p && checkbounds(Bool, img, point) && result[point] > 0
-                    curr_diff = diff_fn(region_means[result[point]], img[p])
-                    if δ > curr_diff
-                        δ = curr_diff
+                if point != p && checkbounds(Bool, img, point)
+                    @inbounds r = result[point]
+                    if r > 0
+                        curr_diff = diff_fn(region_means[r], imgp)
+                        δ = min(δ, curr_diff)
                     end
                 end
             end
-            pq[p] = δ
+            pq[lic[p]] = δ
             @inbounds result[p] = -3
         end
+        empty!(nhq)
 
         # Get the pixels with minimum δ from `pq` and add them to `holdingq` and their labels to `labelsq`
         if !isempty(pq)
             δ_min = peek(pq)[2]
         end
         while (!isempty(pq) && isapprox(peek(pq)[2], δ_min)) #, atol=1e-8))
-            p = dequeue!(pq)
+            p = cil[dequeue!(pq)]
+            @assert result[p] <= 0
+            @inbounds imgp = img[p]
             mindifflabel = -1
             mindiff = Inf
             for point in neighbourhood(p)
-                if point!=p && checkbounds(Bool, img, point) && result[point] > 0
-                    if mindifflabel < 0
-                        mindifflabel = result[point]
-                        mindiff = diff_fn(region_means[result[point]], img[p])
-                    elseif mindifflabel != result[point]
-                        curr_diff = diff_fn(region_means[result[point]], img[p])
-                        if curr_diff < mindiff
-                            mindiff = curr_diff
-                            mindifflabel = result[point]
-                        elseif isapprox(curr_diff, mindiff) #, atol=1e-8)
-                            mindifflabel = 0
+                if point!=p && checkbounds(Bool, img, point)
+                    @inbounds r = result[point]
+                    if r > 0
+                        if mindifflabel < 0
+                            mindifflabel = r
+                            mindiff = diff_fn(region_means[r], imgp)
+                        elseif mindifflabel != r
+                            curr_diff = diff_fn(region_means[r], imgp)
+                            if curr_diff < mindiff
+                                mindiff = curr_diff
+                                mindifflabel = r
+                            elseif isapprox(curr_diff, mindiff) #, atol=1e-8)
+                                mindifflabel = 0
+                            end
                         end
                     end
                 end
             end
             if mindifflabel != 0                # new labels, including resolved ties in last step
-                enqueue!(labelsq, mindifflabel)
-                enqueue!(holdingq, p)
+                push!(holdingq, p=>mindifflabel)
                 @inbounds result[p] = -2
             elseif result[p] == -3              # new ties are enqueued in pq
-                pq[p] = Inf
+                pq[lic[p]] = Inf
                 result[p] = 0
             end                                 # old ties are not enqueued again
         end
 
         # Add label to each point in `holdingq` and add their neighbours to `nhq`
-        while !isempty(holdingq)
-            label = dequeue!(labelsq)
-            p = dequeue!(holdingq)
-            result[p] = label
-            region_pix_count[label] += 1
-            region_means[label] += (img[p] - region_means[label])/(region_pix_count[label])
+        for (p, label) in holdingq
+            @inbounds begin
+                result[p] = label
+                region_pix_count[label] += 1
+                region_means[label] += (img[p] - region_means[label])/(region_pix_count[label])
+            end
             for point in neighbourhood(p)
-                if point!=p && checkbounds(Bool, img, point) && (result[point] == -1 || result[point] == -3)
-                    enqueue!(nhq, point)
-                    @inbounds result[point] = -2
+                if point != p && checkbounds(Bool, img, point)
+                    @inbounds begin
+                        r = result[point]
+                        if r == -1 || r == -3
+                            push!(nhq, point)
+                            result[point] = -2
+                        end
+                    end
                 end
             end
         end
+        empty!(holdingq)
 
     end
 
