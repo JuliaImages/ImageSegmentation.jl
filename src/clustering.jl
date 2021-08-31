@@ -1,13 +1,11 @@
 function img_to_data(img::AbstractArray{T,N}) where T<:Colorant where N
-    AT = accum_type(T)
-    aimg = AT.(img)
-    pimg = parent(aimg)
-    ch = channelview(pimg)
-    data = reshape(ch, :, *(size(pimg)...))
+    aimg = of_eltype(accum_type(T), img)
+    ch = channelview(aimg)
+    return reshape(ch, :, *(size(img)...))
 end
 
 kmeans(img::AbstractArray{T,N}, args...; kwargs...) where {T<:Colorant,N} =
-    kmeans(img_to_data(img), args...; kwargs...)
+    SegmentedImage(kmeans(img_to_data(img), args...; kwargs...), img)
 
 fuzzy_cmeans(img::AbstractArray{T,N}, args...; kwargs...) where {T<:Colorant,N} =
     fuzzy_cmeans(img_to_data(img), args...; kwargs...)

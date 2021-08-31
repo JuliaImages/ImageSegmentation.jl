@@ -14,6 +14,13 @@ struct SegmentedImage{T<:AbstractArray,U<:Union{Colorant,Real}}
     segment_pixel_count::Dict{Int,Int}
 end
 
+SegmentedImage(r::Clustering.KmeansResult, img) =
+    SegmentedImage(reshape(r.assignments, axes(img)),
+                   collect(1:length(r.counts)),
+                   Dict(zip(1:length(r.counts), colorview(ImageCore.ColorTypes.base_colorant_type(eltype(img)), r.centers))),
+                   Dict(zip(1:length(r.counts), r.counts))
+    )
+
 """
     edge = ImageEdge(index1, index2, weight)
 
