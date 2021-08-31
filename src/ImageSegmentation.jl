@@ -13,11 +13,13 @@ include("core.jl")
 include("region_growing.jl")
 include("felzenszwalb.jl")
 include("fast_scanning.jl")
+include("flood_fill.jl")
 include("watershed.jl")
 include("region_merging.jl")
 include("meanshift.jl")
 include("clustering.jl")
 include("merge_segments.jl")
+include("deprecations.jl")
 
 export
     #accessor methods
@@ -31,6 +33,9 @@ export
     unseeded_region_growing,
     felzenszwalb,
     fast_scanning,
+    fast_scanning!,
+    flood_fill,
+    flood_fill!,
     watershed,
     hmin_transform,
     region_adjacency_graph,
@@ -43,7 +48,7 @@ export
     kmeans,
     fuzzy_cmeans,
     merge_segments,
-    
+
     # types
     SegmentedImage,
     ImageEdge

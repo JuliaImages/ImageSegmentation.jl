@@ -1,5 +1,6 @@
 
-default_diff_fn(c1::CT1,c2::CT2) where {CT1<:Union{Colorant,Real}, CT2<:Union{Colorant,Real}} = sqrt(sum(abs2,(c1)-accum_type(CT2)(c2)))
+default_diff_fn(c1::CT1,c2::CT2) where {CT1<:Union{Colorant,Real}, CT2<:Union{Colorant,Real}} = sqrt(_abs2((c1)-accum_type(CT2)(c2)))
+_abs2(c) = mapreducec(v->float(v)^2, +, 0, c)/length(c)
 
 """
     seg_img = seeded_region_growing(img, seeds, [kernel_dim], [diff_fn])
@@ -53,19 +54,12 @@ Albert Mehnert, Paul Jackaway (1997), "An improved seeded region growing algorit
 Pattern Recognition Letters 18 (1997), 1065-1071
 """
 function seeded_region_growing(img::AbstractArray{CT,N}, seeds::AbstractVector{<:PairOrTuple{CartesianIndex{N},Int}},
-    kernel_dim::Union{Vector{Int}, NTuple{N, Int}} = ntuple(i->3,N), diff_fn::Function = default_diff_fn) where {CT<:Union{Colorant,Real}, N}
-    length(kernel_dim) == N || error("Dimension count of image and kernel_dim do not match")
-    for dim in kernel_dim
-        dim > 0 || error("Dimensions of the kernel must be positive")
-        isodd(dim) || error("Dimensions of the kernel must be odd")
-    end
-    pt = CartesianIndex(ntuple(i->kernel_dim[i]÷2, N))
-    neighbourhood_gen(t) = c->_colon(c-t,c+t)
-    seeded_region_growing(img, seeds, neighbourhood_gen(pt), diff_fn)
+    kernel_dim::Dims{N} = ntuple(i->3,N), diff_fn::Function = default_diff_fn) where {CT<:Union{Colorant,Real}, N}
+    seeded_region_growing(img, seeds, box_iterator(kernel_dim), diff_fn)
 end
 
 function seeded_region_growing(img::AbstractArray{CT,N}, seeds::AbstractVector{<:PairOrTuple{CartesianIndex{N},Int}},
-    neighbourhood::NF, diff_fn::DF = default_diff_fn) where {CT<:Union{Colorant,Real}, N, NF, DF}
+    neighbourhood::NF, diff_fn::DF = default_diff_fn) where {CT<:Union{Colorant,Real}, N, NF<:Function, DF<:Function}
 
     # Check if labels are positive integers
     for seed in seeds
@@ -243,18 +237,11 @@ julia> labels_map(seg)
 
 """
 function unseeded_region_growing(img::AbstractArray{CT,N}, threshold::Real,
-    kernel_dim::Union{Vector{Int}, NTuple{N, Int}} = ntuple(i->3,N), diff_fn::Function = default_diff_fn) where {CT<:Colorant, N}
-    length(kernel_dim) == N || error("Dimension count of image and kernel_dim do not match")
-    for dim in kernel_dim
-        dim > 0 || error("Dimensions of the kernel must be positive")
-        isodd(dim) || error("Dimensions of the kernel must be odd")
-    end
-    pt = CartesianIndex(ntuple(i->kernel_dim[i]÷2, N))
-    neighbourhood_gen(t) = c->_colon(c-t,c+t)
-    unseeded_region_growing(img, threshold, neighbourhood_gen(pt), diff_fn)
+    kernel_dim::Dims{N} = ntuple(i->3,N), diff_fn::Function = default_diff_fn) where {CT<:Colorant, N}
+    unseeded_region_growing(img, threshold, box_iterator(kernel_dim), diff_fn)
 end
 
-function unseeded_region_growing(img::AbstractArray{CT,N}, threshold::Real, neighbourhood::Function, diff_fn = default_diff_fn) where {CT<:Colorant,N}
+function unseeded_region_growing(img::AbstractArray{CT,N}, threshold::Real, neighbourhood::Function, diff_fn::Function = default_diff_fn) where {CT<:Colorant,N}
     TM = meantype(CT)
 
     # Fast linear<->cartesian indexing lookup
