@@ -23,46 +23,10 @@ getscalar(a::Real, i...) = a
 fast_scanning(img::AbstractArray{CT,N}, block::NTuple{N,Int} = ntuple(i->4,Val(N))) where {CT<:ImageCore.NumberLike,N} =
     fast_scanning(img, adaptive_thres(img, block))
 
-"""
-    seg_img = fast_scanning(img, threshold, [diff_fn])
+fast_scanning(img::AbstractArray{CT,N}, threshold::Union{AbstractArray,Real}, diff_fn::Function = default_diff_fn) where {CT<:Union{Colorant,Real},N} =
+    fast_scanning!(fill(-1, axes(img)), img, threshold, diff_fn)
 
-Segments the N-D image using a fast scanning algorithm and returns a
-[`SegmentedImage`](@ref) containing information about the segments.
-
-# Arguments:
-* `img`         : N-D image to be segmented (arbitrary axes are allowed)
-* `threshold`   : Upper bound of the difference measure (δ) for considering
-                  pixel into same segment; an `AbstractArray` can be passed
-                  having same number of dimensions as that of `img` for adaptive
-                  thresholding
-* `diff_fn`     : (Optional) Function that returns a difference measure (δ)
-                  between the mean color of a region and color of a point
-
-# Examples:
-
-```jldoctest; setup = :(using ImageCore, ImageMorphology, ImageSegmentation)
-julia> img = zeros(Float64, (3,3));
-
-julia> img[2,:] .= 0.5;
-
-julia> img[:,2] .= 0.6;
-
-julia> seg = fast_scanning(img, 0.2);
-
-julia> labels_map(seg)
-3×3 $(Matrix{Int}):
- 1  4  5
- 4  4  4
- 3  4  6
-```
-
-# Citation:
-
-Jian-Jiun Ding, Cheng-Jin Kuo, Wen-Chih Hong,
-"An efficient image segmentation technique by fast scanning and adaptive merging"
-"""
-function fast_scanning(img::AbstractArray{CT,N}, threshold::Union{AbstractArray,Real}, diff_fn::Function = default_diff_fn) where {CT<:Union{Colorant,Real},N}
-
+function fast_scanning!(result, img::AbstractArray{CT,N}, threshold::Union{AbstractArray,Real}, diff_fn::DF = default_diff_fn) where {CT<:Union{Colorant,Real},N,DF<:Function}
     if threshold isa AbstractArray
         ndims(img) == ndims(threshold) || error("Dimension count of image and threshold do not match")
     end
@@ -74,7 +38,6 @@ function fast_scanning(img::AbstractArray{CT,N}, threshold::Union{AbstractArray,
 
     # Required data structures
     TM = meantype(CT)
-    result              =   fill(-1, axes(img))                             # Array to store labels
     region_means        =   Dict{Int, TM}()                                 # A map conatining (label, mean) pairs
     region_pix_count    =   Dict{Int, Int}()                                # A map conatining (label, count) pairs
     temp_labels         =   IntDisjointSets(0)                              # Disjoint set to map labels to their equivalence class

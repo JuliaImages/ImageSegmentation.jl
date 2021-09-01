@@ -1,3 +1,8 @@
+using ImageSegmentation
+using ImageFiltering
+using ImageCore.FixedPointNumbers, ImageCore.ColorTypes
+using Test
+
 of_mean_type(p::Colorant) = ImageSegmentation.meantype(typeof(p))(p)
 
 @testset "Seeded Region Growing" begin
@@ -5,7 +10,7 @@ of_mean_type(p::Colorant) = ImageSegmentation.meantype(typeof(p))(p)
     img = zeros(Gray{N0f8}, 10, 10)
     img[6:10,4:8] .= 0.5
     img[3:7,2:6] .= 0.8
-    seeds = [(CartesianIndex(3,9),1), (CartesianIndex(5,2),2), (CartesianIndex(9,7),3)]
+    seeds = [CartesianIndex(3,9) => 1, CartesianIndex(5,2) => 2, CartesianIndex(9,7) => 3]
 
     expected = ones(Int, 10, 10)
     expected[6:10,4:8] .= 3
@@ -94,7 +99,7 @@ of_mean_type(p::Colorant) = ImageSegmentation.meantype(typeof(p))(p)
 
     # changed mean and the same queues are in NHQ for several iterations
     # in this case the queue cannot just be inserted into pq several times
-    img = Gray{N0f8}.([  
+    img = Gray{N0f8}.([
      0.475  0.412  0.443  0.475  0.702  0.714  0.667  0.443  0.404  0.353
      0.525  0.431  0.365  0.424  0.682  0.698  0.635  0.365  0.329  0.318
      0.561  0.553  0.545  0.463  0.643  0.663  0.58   0.275  0.251  0.259
