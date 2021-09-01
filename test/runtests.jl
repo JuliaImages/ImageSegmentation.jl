@@ -1,5 +1,6 @@
 using ImageSegmentation, Images, Test, SimpleWeightedGraphs, LightGraphs, StaticArrays, DataStructures
-using RegionTrees: isleaf, Cell, split! 
+using Images.OffsetArrays
+using RegionTrees: isleaf, Cell, split!
 using MetaGraphs: MetaGraph, clear_props!, get_prop, has_prop, set_prop!, props, vertices
 
 using Documenter
@@ -12,4 +13,5 @@ include("fast_scanning.jl")
 include("watershed.jl")
 include("region_merging.jl")
 include("meanshift.jl")
+include("clustering.jl")
 include("merge_segments.jl")
