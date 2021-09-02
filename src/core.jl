@@ -267,6 +267,8 @@ function prune_segments(s::SegmentedImage, is_rem::Function, diff_fn::Function)
 
 end
 
+const SP = Base.VERSION < v"1.1" ? "" : " "
+
 """
     box_iterator(window)
 
@@ -281,7 +283,7 @@ julia> center = CartesianIndex(17, 24)
 CartesianIndex(17, 24)
 
 julia> fiter(center)
-3×3 CartesianIndices{2, Tuple{UnitRange{$Int}, UnitRange{$Int}}}:
+3×3 CartesianIndices{2,$(SP)Tuple{UnitRange{$Int},$(SP)UnitRange{$Int}}}:
  CartesianIndex(16, 23)  CartesianIndex(16, 24)  CartesianIndex(16, 25)
  CartesianIndex(17, 23)  CartesianIndex(17, 24)  CartesianIndex(17, 25)
  CartesianIndex(18, 23)  CartesianIndex(18, 24)  CartesianIndex(18, 25)
