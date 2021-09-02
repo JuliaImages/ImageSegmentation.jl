@@ -73,6 +73,30 @@ function show(io::IO, seg::SegmentedImage)
 end
 
 """
+    IndirectArray(seg::SegmentedImage, label_values::AbstractDict)
+
+Create an array where index `i...` has value `label_values[labels_map[seg][i...]]`.
+To display each segment using its mean value, use `IndirectArray(seg, segment_mean(seg))`.
+"""
+IndirectArrays.IndirectArray(seg::SegmentedImage, label_values::AbstractDict) = IndirectArray(seg.image_indexmap, label_values)
+
+"""
+    IndirectArray(f, seg::SegmentedImage)
+    IndirectArray(seg::SegmentedImage)
+
+Create a colorized image from `seg`, for visualization of the segments. The colors are chosen by `Colors.distinguishable_colors`.
+
+Optionally pass a function `f` to transform the dictionary before construction.
+The default value is `f=identity`, but `f=OrderedCollections.freeze` is strongly recommended when the number of distinct
+segments is small.
+"""
+function IndirectArrays.IndirectArray(f, seg::SegmentedImage)
+    colors = f(Dict(zip(seg.segment_labels, distinguishable_colors(length(seg.segment_labels)))))
+    return IndirectArray(seg, colors)
+end
+IndirectArrays.IndirectArray(seg::SegmentedImage) = IndirectArray(identity, seg)
+
+"""
     G, vert_map = region_adjacency_graph(seg, weight_fn)
 
 Constructs a region adjacency graph (RAG) from the `SegmentedImage`. It returns the RAG
