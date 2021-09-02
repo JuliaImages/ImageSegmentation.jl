@@ -1,4 +1,9 @@
 using ImageSegmentation
+using ImageSegmentation.Colors
+using ImageSegmentation.FixedPointNumbers
+using Downloads
+using FileIO
+using Statistics
 using Test
 
 @testset "flood_fill" begin
@@ -13,17 +18,22 @@ using Test
     @test flood_fill(x -> 1 < x < 4, a, CartesianIndex(2)) == [false, true, true, false, false, false, false]
     @test flood_fill(isinteger, a, CartesianIndex(2)) == trues(7)
     # 2d
-    a = [true false false false;
+    ab = [true false false false;
          true true false false;
          true false false true;
          true true true true]
-    for idx in CartesianIndices(a)
-        if a[idx]
-            @test flood_fill(identity, a, idx) == a
-        else
-            @test_throws ArgumentError flood_fill(identity, a, idx)
+    an0f8 = N0f8.(ab)
+    agray = Gray.(an0f8)
+        for (f, a) in ((identity, ab), (==(1), an0f8), (==(1), agray))
+        for idx in CartesianIndices(a)
+            if f(a[idx])
+                @test flood_fill(f, a, idx) == a
+            else
+                @test_throws ArgumentError flood_fill(f, a, idx)
+            end
         end
     end
+    @test flood_fill(identity, ab, Int16(1)) == ab
     # 3d
     k = 10
     a = falses(k, k, k)
@@ -43,4 +53,14 @@ using Test
             @test_throws ArgumentError flood_fill(identity, a, idx)
         end
     end
+    # Colors
+    path = Downloads.download("https://github.com/JuliaImages/juliaimages.github.io/raw/source/docs/src/pkgs/segmentation/assets/flower.jpg")
+    img = load(path)
+    seg = flood_fill(img, CartesianIndex(87,280); thresh=0.3)
+    @test 0.2*length(seg) <= sum(seg) <= 0.25*length(seg)
+    c = mean(img[seg])
+    # N0f8 makes for easier approximate testing
+    @test N0f8(red(c)) ≈ N0f8(0.855)
+    @test N0f8(green(c)) ≈ N0f8(0.161)
+    @test N0f8(blue(c)) ≈ N0f8(0.439)
 end

@@ -156,29 +156,33 @@ of_mean_type(p::Colorant) = ImageSegmentation.meantype(typeof(p))(p)
     expected = ones(Int, (3,3))
     expected[1:3,3] .= 2
     expected_labels = [1,2]
-    expected_means = Dict(1=>RGB{Float64}(0.3,1.0,0.0), 2=>RGB{Float64}(0.0,0.0,0.0))
+    expected_means = Dict(1=>RGB{Float32}(0.3,1.0,0.0), 2=>RGB{Float32}(0.0,0.0,0.0))
     expected_count = Dict(1=>6, 2=>3)
 
     seg = seeded_region_growing(img, seeds)
     @test all(label->(label in expected_labels), seg.segment_labels)
     @test all(label->(label in seg.segment_labels), expected_labels)
     @test expected_count == seg.segment_pixel_count
-    @test expected_means == seg.segment_means
+    @test expected_means[1] ≈ seg.segment_means[1]
+    @test expected_means[2] ≈ seg.segment_means[2]
     @test seg.image_indexmap == expected
 
     expected = ones(Int, (3,3))
     expected[1:3,2] .= 0
     expected[1:3,3] .= 2
     expected_labels = [0,1,2]
-    expected_means = Dict(1=>RGB{Float64}(0.4,1.0,0.0), 2=>RGB{Float64}(0.0,0.0,0.0))
+    expected_means = Dict(1=>RGB{Float32}(0.4,1.0,0.0), 2=>RGB{Float32}(0.0,0.0,0.0))
     expected_count = Dict(0=>3, 1=>3, 2=>3)
 
-    seg = seeded_region_growing(img, seeds, [3,3], (c1,c2)->abs(of_mean_type(c1).r - of_mean_type(c2).r))
+    seg = seeded_region_growing(img, seeds, (3,3), (c1,c2)->abs(of_mean_type(c1).r - of_mean_type(c2).r))
     @test all(label->(label in expected_labels), seg.segment_labels)
     @test all(label->(label in seg.segment_labels), expected_labels)
     @test expected_count == seg.segment_pixel_count
     @test expected_means == seg.segment_means
     @test seg.image_indexmap == expected
+    @info "The deprecation warning below is expected"   # but can be deleted eventually!
+    segd = seeded_region_growing(img, seeds, [3,3], (c1,c2)->abs(of_mean_type(c1).r - of_mean_type(c2).r))
+    @test labels_map(segd) == labels_map(seg)
 end
 
 @testset "Unseeded Region Growing" begin
@@ -296,11 +300,13 @@ end
     expected_means = Dict(1=>of_mean_type(img[1,1]), 3=>of_mean_type(img[1,3]), 2=>of_mean_type(img[1,2]))
     expected_count = Dict(1=>3, 2=>3, 3=>3)
 
-    seg = unseeded_region_growing(img, 0.2, [3,3], (c1,c2)->abs(of_mean_type(c1).r - of_mean_type(c2).r))
+    seg = unseeded_region_growing(img, 0.2, (3,3), (c1,c2)->abs(of_mean_type(c1).r - of_mean_type(c2).r))
     @test all(label->(label in expected_labels), seg.segment_labels)
     @test all(label->(label in seg.segment_labels), expected_labels)
     @test expected_count == seg.segment_pixel_count
     @test expected_means == seg.segment_means
     @test seg.image_indexmap == expected
-
+    @info "The deprecation warning below is expected"   # but can be deleted eventually!
+    segd = unseeded_region_growing(img, 0.2, [3,3], (c1,c2)->abs(of_mean_type(c1).r - of_mean_type(c2).r))
+    @test labels_map(segd) == labels_map(seg)
 end

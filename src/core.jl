@@ -1,8 +1,8 @@
-accum_type(::Type{T}) where {T<:Integer} = Int
-accum_type(::Type{Float32})    = Float32
-accum_type(::Type{T}) where {T<:Real}  = Float64
-accum_type(::Type{T}) where {T<:Fixed} = floattype(T)
-accum_type(::Type{C}) where {C<:Colorant} = base_colorant_type(C){accum_type(eltype(C))}
+accum_type(::Type{T}) where {T<:Integer}    = Int
+accum_type(::Type{Float32})                 = Float32
+accum_type(::Type{T}) where {T<:Real}       = Float64
+accum_type(::Type{T}) where {T<:FixedPoint} = floattype(T)
+accum_type(::Type{C}) where {C<:Colorant}   = base_colorant_type(C){accum_type(eltype(C))}
 
 """
 `SegmentedImage` type contains the index-label mapping, assigned labels,
@@ -267,7 +267,6 @@ function prune_segments(s::SegmentedImage, is_rem::Function, diff_fn::Function)
 
 end
 
-const SP = Base.VERSION < v"1.1" ? "" : " "
 
 """
     box_iterator(window)
@@ -283,7 +282,7 @@ julia> center = CartesianIndex(17, 24)
 CartesianIndex(17, 24)
 
 julia> fiter(center)
-3×3 CartesianIndices{2,$(SP)Tuple{UnitRange{$Int},$(SP)UnitRange{$Int}}}:
+3×3 CartesianIndices{2, Tuple{UnitRange{$Int}, UnitRange{$Int}}}:
  CartesianIndex(16, 23)  CartesianIndex(16, 24)  CartesianIndex(16, 25)
  CartesianIndex(17, 23)  CartesianIndex(17, 24)  CartesianIndex(17, 25)
  CartesianIndex(18, 23)  CartesianIndex(18, 24)  CartesianIndex(18, 25)
