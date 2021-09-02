@@ -1,7 +1,6 @@
 using ImageSegmentation
 using ImageSegmentation.Colors
 using ImageSegmentation.FixedPointNumbers
-using Downloads
 using FileIO
 using Statistics
 using Test
@@ -54,7 +53,7 @@ using Test
         end
     end
     # Colors
-    path = Downloads.download("https://github.com/JuliaImages/juliaimages.github.io/raw/source/docs/src/pkgs/segmentation/assets/flower.jpg")
+    path = download("https://github.com/JuliaImages/juliaimages.github.io/raw/source/docs/src/pkgs/segmentation/assets/flower.jpg")
     img = load(path)
     seg = flood_fill(img, CartesianIndex(87,280); thresh=0.3)
     @test 0.2*length(seg) <= sum(seg) <= 0.25*length(seg)
