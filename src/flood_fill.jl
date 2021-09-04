@@ -50,22 +50,22 @@ function flood(src::AbstractArray, idx::Union{Integer,CartesianIndex},
 end
 
 """
-    flood_fill!(f, dest, src, idx, nbrhood_function=diamond_iterator((3,3,...)); fillval=true, isfilled = isequal(fillval))
+    flood_fill!(f, dest, src, idx, nbrhood_function=diamond_iterator((3,3,...)); fillvalue=true, isfilled = isequal(fillvalue))
 
-Set entries of `dest` to `fillval` for all elements of `src` that:
+Set entries of `dest` to `fillvalue` for all elements of `src` that:
 
 - satisfy `f(src[i]) == true` and
 - are connected by such elements to the starting point `idx` (an integer index or `CartesianIndex`).
 
-If you choose a value of `fillval` other than the default `true`, you must supply `isfilled`
-which should return `isfilled(fillval) == true`.
+If you choose a value of `fillvalue` other than the default `true`, you must supply `isfilled`
+which should return `isfilled(fillvalue) == true`.
 
 This throws an error if `f` evaluates as `false` for the starting value `src[idx]`.
 The sense of connectivity is defined by `nbrhood_function`, with two choices being
 [`ImageSegmentation.diamond_iterator`](@ref) and [`ImageSegmentation.box_iterator`](@ref.)
 
-You can optionally omit `dest`, in which case entries in `src` will be set to `fillval`.
-However, it's required that `isfilled(fillval)` return `true` or an error will be thrown.
+You can optionally omit `dest`, in which case entries in `src` will be set to `fillvalue`.
+However, it's required that `isfilled(fillvalue)` return `true` or an error will be thrown.
 
 # Examples
 
@@ -81,7 +81,7 @@ julia> a = repeat([1:4; 1:4], 1, 3)
  3  3  3
  4  4  4
 
-julia> flood_fill!(>=(3), a, CartesianIndex(3, 2); fillval = -1, isfilled = <(0))
+julia> flood_fill!(>=(3), a, CartesianIndex(3, 2); fillvalue = -1, isfilled = <(0))
 8×3 Matrix{Int64}:
   1   1   1
   2   2   2
@@ -99,25 +99,16 @@ function flood_fill!(f,
                      dest,
                      src::AbstractArray,
                      idx::Union{Int,CartesianIndex},
-                     nbrhood_function=diamond_iterator(window_neighbors(src));
-                     fillval=true,
-                     isfilled=nothing)
+                     nbrhood_function = diamond_iterator(window_neighbors(src));
+                     fillvalue = true,
+                     isfilled = (fillvalue === true) ? identity : isequal(fillvalue))
     R = CartesianIndices(src)
     idx = R[idx]  # ensure cartesian indexing
     f(src[idx]) || throw(ArgumentError("starting point fails to meet criterion"))
     q = [idx]
-    if fillval === true
-        if isfilled === nothing
-            isfilled = identity
-        end
-    else
-        if isfilled === nothing
-            isfilled = isequal(fillval)
-        end
-    end
-    fillval = convert(eltype(dest), fillval)
+    fillvalue = convert(eltype(dest), fillvalue)
     axes(dest) == R.indices || throw(DimensionMismatch("$(axes(dest)) do not match $(Tuple(R))"))
-    _flood_fill!(f, dest, src, R, q, nbrhood_function, fillval, isfilled)
+    _flood_fill!(f, dest, src, R, q, nbrhood_function, fillvalue, isfilled)
     return dest
 end
 flood_fill!(f, dest, src::AbstractArray, idx::Integer, args...; kwargs...) =
@@ -126,11 +117,11 @@ flood_fill!(f, src::AbstractArray, idx::Union{Integer,CartesianIndex}, args...; 
     flood_fill!(f, src, src, idx, args...; kwargs...)
 
 # This is a trivial implementation (just to get something working), better would be a raster implementation
-function _flood_fill!(f::F, dest, src, R::CartesianIndices{N}, q, nbrhood_function::FN, fillval, isfilled::C) where {F,N,FN,C}
-    isfilled(fillval) == true || throw(ArgumentError("`isfilled(fillval)` must return `true`"))
+function _flood_fill!(f::F, dest, src, R::CartesianIndices{N}, q, nbrhood_function::FN, fillvalue, isfilled::C) where {F,N,FN,C}
+    isfilled(fillvalue) == true || throw(ArgumentError("`isfilled(fillvalue)` must return `true`"))
     while !isempty(q)
         idx = pop!(q)
-        dest[idx] = fillval
+        dest[idx] = fillvalue
         @inbounds for j in nbrhood_function(idx)
             j ∈ R || continue
             if f(src[j]) && !isfilled(dest[j])

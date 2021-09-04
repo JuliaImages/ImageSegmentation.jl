@@ -3,7 +3,7 @@ using ImageSegmentation.Colors
 using ImageSegmentation.FixedPointNumbers
 using FileIO
 using Statistics
-using SparseArrayKit
+using SparseArrays
 using Test
 
 @testset "flood_fill" begin
@@ -72,22 +72,24 @@ using Test
     dest = fill!(similar(a, Bool), false)
     @test flood_fill!(near3, dest, a, idx) == (round.(a) .== 3)
     a = copy(a0)
-    flood_fill!(near3, a, idx; fillval=3)
+    flood_fill!(near3, a, idx; fillvalue=3)
     @test a == [near3(a0[i]) ? 3 : a[i] for i in eachindex(a)]
     a = copy(a0)
-    flood_fill!(near3, a, idx; fillval=-1)
+    flood_fill!(near3, a, idx; fillvalue=-1)
     @test a == [near3(a0[i]) ? -1 : a[i] for i in eachindex(a)]
     a = copy(a0)
-    @test_throws ArgumentError flood_fill!(near3, a, idx; fillval=-1, isfilled=near3)
+    @test_throws ArgumentError flood_fill!(near3, a, idx; fillvalue=-1, isfilled=near3)
 
     # This mimics a "big data" application in which we have several structures we want
     # to label with different segment numbers, and the `src` array is too big to fit
     # in memory.
+    # It would be better to use a package like SparseArrayKit, which allows efficient
+    # insertions and supports arbitrary dimensions.
     a = Bool[0 0 0 0 0 0 1 1;
              1 1 0 0 0 0 0 0]
-    dest = SparseArray{Int}(undef, size(a))   # stores the nonzero indexes in a Dict
-    flood_fill!(identity, dest, a, CartesianIndex(2, 1); fillval=1)
-    flood_fill!(identity, dest, a, CartesianIndex(1, 7); fillval=2)
+    dest = spzeros(Int, size(a)...)   # stores the nonzero indexes in a Dict
+    flood_fill!(identity, dest, a, CartesianIndex(2, 1); fillvalue=1)
+    flood_fill!(identity, dest, a, CartesianIndex(1, 7); fillvalue=2)
     @test dest == [0 0 0 0 0 0 2 2;
                    1 1 0 0 0 0 0 0]
 end
