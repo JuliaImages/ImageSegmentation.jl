@@ -3,6 +3,7 @@ using ImageSegmentation.Colors
 using ImageSegmentation.FixedPointNumbers
 using FileIO
 using Statistics
+using SparseArrayKit
 using Test
 
 @testset "flood_fill" begin
@@ -78,4 +79,15 @@ using Test
     @test a == [near3(a0[i]) ? -1 : a[i] for i in eachindex(a)]
     a = copy(a0)
     @test_throws ArgumentError flood_fill!(near3, a, idx; fillval=-1, isfilled=near3)
+
+    # This mimics a "big data" application in which we have several structures we want
+    # to label with different segment numbers, and the `src` array is too big to fit
+    # in memory.
+    a = Bool[0 0 0 0 0 0 1 1;
+             1 1 0 0 0 0 0 0]
+    dest = SparseArray{Int}(undef, size(a))   # stores the nonzero indexes in a Dict
+    flood_fill!(identity, dest, a, CartesianIndex(2, 1); fillval=1)
+    flood_fill!(identity, dest, a, CartesianIndex(1, 7); fillval=2)
+    @test dest == [0 0 0 0 0 0 2 2;
+                   1 1 0 0 0 0 0 0]
 end
