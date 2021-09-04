@@ -57,15 +57,13 @@ Set entries of `dest` to `fillvalue` for all elements of `src` that:
 - satisfy `f(src[i]) == true` and
 - are connected by such elements to the starting point `idx` (an integer index or `CartesianIndex`).
 
-If you choose a value of `fillvalue` other than the default `true`, you must supply `isfilled`
-which should return `isfilled(fillvalue) == true`.
-
 This throws an error if `f` evaluates as `false` for the starting value `src[idx]`.
 The sense of connectivity is defined by `nbrhood_function`, with two choices being
 [`ImageSegmentation.diamond_iterator`](@ref) and [`ImageSegmentation.box_iterator`](@ref.)
 
 You can optionally omit `dest`, in which case entries in `src` will be set to `fillvalue`.
-However, it's required that `isfilled(fillvalue)` return `true` or an error will be thrown.
+You may also supply `isfilled`, which should return `true` for any value in `dest`
+which does not need to be set or visited; one requirement is that `isfilled(fillvalue) == true`.
 
 # Examples
 
