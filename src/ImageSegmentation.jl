@@ -34,7 +34,7 @@ export
     felzenszwalb,
     fast_scanning,
     fast_scanning!,
-    flood_fill,
+    flood,
     flood_fill!,
     watershed,
     hmin_transform,

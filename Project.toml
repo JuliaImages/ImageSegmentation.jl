@@ -39,7 +39,8 @@ Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 FileIO = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
 ImageMagick = "6218d12a-5da1-5696-b52f-db25d2ecc6d1"
 Images = "916415d5-f1e6-5110-898d-aaa5f9f070e0"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Documenter", "FileIO", "ImageMagick", "Images", "Test"]
+test = ["Documenter", "FileIO", "ImageMagick", "Images", "SparseArrays", "Test"]
