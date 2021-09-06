@@ -102,7 +102,7 @@ function felzenszwalb(img::AbstractArray{T}, k::Real, min_size::Int = 0) where T
             if I >= J
                 continue
             end
-            edges[num+=1] = ImageEdge(L[I], L[J], sqrt(abs2(imgI-meantype(T)(img[J]))))
+            edges[num+=1] = ImageEdge(L[I], L[J], sqrt(_abs2(imgI-meantype(T)(img[J]))))
         end
     end
     deleteat!(edges, num+1:num_edges)   # compensate for the ones we were missing at the image edges

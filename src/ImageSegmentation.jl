@@ -4,6 +4,7 @@ import Base: show
 
 using LinearAlgebra, Statistics
 using DataStructures, StaticArrays, ImageCore, ImageFiltering, ImageMorphology, LightGraphs, SimpleWeightedGraphs, RegionTrees, Distances, StaticArrays, Clustering, MetaGraphs
+using ImageCore.ColorVectorSpace: MathTypes
 import Clustering: kmeans, fuzzy_cmeans
 
 const PairOrTuple{K,V} = Union{Pair{K,V},Tuple{K,V}}

@@ -1,7 +1,3 @@
-
-default_diff_fn(c1::CT1,c2::CT2) where {CT1<:Union{Colorant,Real}, CT2<:Union{Colorant,Real}} = sqrt(_abs2((c1)-accum_type(CT2)(c2)))
-_abs2(c) = mapreducec(v->float(v)^2, +, 0, c)/length(c)
-
 """
     seg_img = seeded_region_growing(img, seeds, [kernel_dim], [diff_fn])
     seg_img = seeded_region_growing(img, seeds, [neighbourhood], [diff_fn])
