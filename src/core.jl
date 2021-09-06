@@ -7,7 +7,9 @@ accum_type(::Type{C}) where {C<:Colorant}   = base_colorant_type(C){accum_type(e
 accum_type(val) = isa(val, Type) ? throw_accum_type(val) : convert(accum_type(typeof(val)), val)
 throw_accum_type(T) = error("type $T not supported in `accum_type`")
 
-_abs2(c::MathTypes) = c ⋅ c
+# TODO:
+# _abs2(c::MathTypes) = c ⋅ c
+_abs2(c::MathTypes) = mapreducec(v->float(v)^2, +, 0, c)
 _abs2(x) = abs2(x)
 
 default_diff_fn(c1::CT1,c2::CT2) where {CT1<:Union{Colorant,Real}, CT2<:Union{Colorant,Real}} = sqrt(_abs2(c1-accum_type(c2)))

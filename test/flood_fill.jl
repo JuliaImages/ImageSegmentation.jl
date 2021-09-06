@@ -56,7 +56,7 @@ using Test
     # Colors
     path = download("https://github.com/JuliaImages/juliaimages.github.io/raw/source/docs/src/pkgs/segmentation/assets/flower.jpg")
     img = load(path)
-    seg = flood(img, CartesianIndex(87,280); thresh=0.3)
+    seg = flood(img, CartesianIndex(87,280); thresh=0.3*sqrt(3))   # TODO: eliminate the sqrt(3) when we transition to `abs2(c) = c ⋅ c`
     @test 0.2*length(seg) <= sum(seg) <= 0.25*length(seg)
     c = mean(img[seg])
     # N0f8 makes for easier approximate testing
