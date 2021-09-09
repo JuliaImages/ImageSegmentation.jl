@@ -40,6 +40,12 @@ See also [`flood_fill!`](@ref).
 flood(f, src::AbstractArray, idx::Union{Integer,CartesianIndex}, nbrhood_function=diamond_iterator(window_neighbors(src))) =
     flood_fill!(f, falses(axes(src)) #=fill!(similar(src, Bool), false)=#, src, idx, nbrhood_function)
 
+"""
+    mask = flood(src, idx, nbrhood_function=diamond_iterator((3,3,...)); thresh)
+
+Return an array `mask` with the same axes as `src`, marked `true` for all connected elements
+of `src` for which `src[i]` has a Euclidean distance less than `thresh` from `src[idx]`.
+"""
 function flood(src::AbstractArray, idx::Union{Integer,CartesianIndex},
                     nbrhood_function=diamond_iterator(window_neighbors(src)); thresh)
     validx = src[idx]
