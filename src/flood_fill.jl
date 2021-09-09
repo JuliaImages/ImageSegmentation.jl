@@ -43,8 +43,8 @@ flood(f, src::AbstractArray, idx::Union{Integer,CartesianIndex}, nbrhood_functio
 """
     mask = flood(src, idx, nbrhood_function=diamond_iterator((3,3,...)); thresh)
 
-Return an array `mask` with the same axes as `src`, marked `true` for all elements of `src` that
-have a Euclidean distance less than `thresh` from `src[idx]`.
+Return an array `mask` with the same axes as `src`, marked `true` for all connected elements
+of `src` for which `src[i]` has a Euclidean distance less than `thresh` from `src[idx]`.
 """
 function flood(src::AbstractArray, idx::Union{Integer,CartesianIndex},
                     nbrhood_function=diamond_iterator(window_neighbors(src)); thresh)
