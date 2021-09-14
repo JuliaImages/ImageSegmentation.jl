@@ -72,13 +72,21 @@ using Test
     dest = fill!(similar(a, Bool), false)
     @test flood_fill!(near3, dest, a, idx) == (round.(a) .== 3)
     a = copy(a0)
-    flood_fill!(near3, a, idx; fillvalue=3)
-    @test a == [near3(a0[i]) ? 3 : a[i] for i in eachindex(a)]
-    a = copy(a0)
     flood_fill!(near3, a, idx; fillvalue=-1)
     @test a == [near3(a0[i]) ? -1 : a[i] for i in eachindex(a)]
     a = copy(a0)
     @test_throws ArgumentError flood_fill!(near3, a, idx; fillvalue=-1, isfilled=near3)
+    # warning
+    a = [1:7;]
+    @test_logs (:warn, r"distinct.*incomplete") flood_fill!(<(5), a, 1; fillvalue=3)
+    @test a == [3,3,3,4,5,6,7]
+    a = [1:7;]
+    dest = fill(-1, size(a))
+    @test_logs flood_fill!(<(5), dest, a, 1; fillvalue=3)   # no warnings
+    @test dest == [3,3,3,3,-1,-1,-1]
+    a = [1:7;]
+    @test_logs flood_fill!(<(5), a, 1; fillvalue=11)
+    @test a == [11,11,11,11,5,6,7]
 
     # This mimics a "big data" application in which we have several structures we want
     # to label with different segment numbers, and the `src` array is too big to fit

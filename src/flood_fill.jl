@@ -68,6 +68,9 @@ The sense of connectivity is defined by `nbrhood_function`, with two choices bei
 [`ImageSegmentation.diamond_iterator`](@ref) and [`ImageSegmentation.box_iterator`](@ref.)
 
 You can optionally omit `dest`, in which case entries in `src` will be set to `fillvalue`.
+This is recommended only in cases where `fillvalue` is distinct from the values in `src`,
+as otherwise there is a risk that some voxels will be incorrectly identified as having been
+visited and their neighbors excluded from further search.
 You may also supply `isfilled`, which should return `true` for any value in `dest`
 which does not need to be set or visited; one requirement is that `isfilled(fillvalue) == true`.
 
@@ -123,6 +126,14 @@ flood_fill!(f, src::AbstractArray, idx::Union{Integer,CartesianIndex}, args...; 
 # This is a trivial implementation (just to get something working), better would be a raster implementation
 function _flood_fill!(f::F, dest, src, R::CartesianIndices{N}, q, nbrhood_function::FN, fillvalue, isfilled::C) where {F,N,FN,C}
     isfilled(fillvalue) == true || throw(ArgumentError("`isfilled(fillvalue)` must return `true`"))
+    if Base.mightalias(dest, src)
+        try
+            f(fillvalue) && @warn """
+                in-place `fillvalue` may not be distinct from array values, and filling may be incomplete.
+                To suppress this warning, avoid filling in-place or ensure `f(fillvalue)` is `false`."""
+        catch
+        end
+    end
     while !isempty(q)
         idx = pop!(q)
         dest[idx] = fillvalue
