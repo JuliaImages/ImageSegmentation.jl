@@ -1,63 +1,185 @@
-using MosaicViews
-using LazyArrays
-using BenchmarkTools
-using Images, TestImages
-using ImageBase.ImageCore: GenericGrayImage, GenericImage
+"""
+    chan_vese(img; μ, λ₁, λ₂, tol, max_iter, Δt, reinitial_flag)
 
-function calculate_averages(img::AbstractArray{T, N}, H𝚽::AbstractArray{T, M}) where {T<:Real, N, M}
-    H𝚽ⁱ = @. 1. - H𝚽
-    ∫H𝚽 = sum(H𝚽)
-    ∫H𝚽ⁱ = sum(H𝚽ⁱ)
-    if ndims(img) == 2
-        ∫u₀H𝚽 = sum(img .* H𝚽)
-        ∫u₀H𝚽ⁱ = sum(img .* H𝚽ⁱ)
-    elseif ndims(img) == 3
-        ∫u₀H𝚽 = sum(img .* H𝚽, dims=(1, 2))
-        ∫u₀H𝚽ⁱ = sum(img .* H𝚽ⁱ, dims=(1, 2))
-    end
-    if ∫H𝚽 != 0
-        c₁ = ∫u₀H𝚽 / ∫H𝚽
-    end
-    if ∫H𝚽ⁱ != 0
-        c₂ = ∫u₀H𝚽ⁱ / ∫H𝚽ⁱ
+Segments image `img` by evolving a level set. An active contour model 
+which can be used to segment objects without clearly defined boundaries.
+
+# output
+Return a `BitMatrix`.
+
+# Details
+
+Chan-Vese algorithm deals quite well even with images which are quite
+difficult to segment. Since CV algorithm relies on global properties, 
+rather than just taking local properties under consideration, such as
+gradient. Better robustness for noise is one of the main advantages of 
+this algorithm. See [1], [2], [3] for more details.
+
+# Options
+
+The function argument is described in detail below. 
+
+Denote the edge set curve with 𝐶 in the following part.
+
+## `μ::Float64`
+
+The argument `μ` is a weight controlling the penalty on the total length
+of the curve 𝐶;
+
+For example, if the boundaries of the image are quite smooth, a larger `μ`
+can prevent 𝐶 from being a complex curve.
+
+Default: 0.25
+
+## `λ₁::Float64`, `λ₂::Float64`
+
+The argument `λ₁` and `λ₂` affect the desired uniformity inside 𝐶 and 
+outside 𝐶, respectively. 
+
+For example, if set `λ₁` < `λ₂`, we are more possible to get result with 
+quite uniform background and varying grayscale objects in the foreground.
+
+Default: λ₁ = 1.0
+         λ₂ = 1.0
+
+## `tol::Float64`
+
+The argument `tol` controls the level set variation tolerance between 
+iteration. If the L2 norm difference between two level sets of adjacent
+iterations is below `tol`, then the solution will be assumed to be reached.
+
+Default: 1e-3
+
+## `max_iter::Int64`
+
+The argument `max_iter` controls the maximum of iteration number.
+
+Default: 500
+
+## `Δt::Float64`
+
+The argument `Δt` is a multiplication factor applied at calculations 
+for each step, serves to accelerate the algorithm. Although larger `Δt`
+can speed up the algorithm, it might prevent algorithm from converging to 
+the solution.
+
+Default: 0.5
+
+## reinitial_flag::Bool
+
+The arguement `reinitial_flag` controls whether to reinitialize the
+level set in each step.
+
+Default: false
+
+# Examples
+
+```julia
+using TestImages
+using ImageSegmentation
+
+img = testimage("cameraman")
+
+cv_result = chan_vese(img, μ=0.25, λ₁=1.0, λ₂=1.0, tol=1e-3, max_iter=200, Δt=0.5, reinitial_flag=false)
+```
+
+# References
+
+[1] An Active Contour Model without Edges, Tony Chan and Luminita Vese, 
+    Scale-Space Theories in Computer Vision, 1999, :DOI:`10.1007/3-540-48236-9_13`
+[2] Chan-Vese Segmentation, Pascal Getreuer Image Processing On Line, 2 (2012), 
+    pp. 214-224, :DOI:`10.5201/ipol.2012.g-cv`
+[3] The Chan-Vese Algorithm - Project Report, Rami Cohen, 2011 :arXiv:`1107.2782`
+"""
+function chan_vese(img::GenericGrayImage;
+                   μ::Float64=0.25,
+                   λ₁::Float64=1.0,
+                   λ₂::Float64=1.0,
+                   tol::Float64=1e-3,
+                   max_iter::Int64=500,
+                   Δt::Float64=0.5,
+                   reinitial_flag::Bool=false)
+    # Signs used in the codes and comments mainly follow paper[3] in the References.
+    img = float64.(channelview(img))
+    iter = 0
+    h = 1.0
+    del = tol + 1
+    img .= img .- minimum(img)
+
+    if maximum(img) != 0
+        img .= img ./ maximum(img)
     end
 
-    return c₁, c₂
-end
+    # Precalculation of some constants which helps simplify some integration   
+    area = length(img) # area = ∫H𝚽 + ∫H𝚽ⁱ
+    ∫u₀ = sum(img)     # ∫u₀ = ∫u₀H𝚽 + ∫u₀H𝚽ⁱ
 
-function difference_from_average_term(img::AbstractArray{T, N}, H𝚽::AbstractArray{T, M}, λ₁::Float64, λ₂::Float64) where {T<:Real, N, M}
-    c₁, c₂ = calculate_averages(img, H𝚽)
+    # Initialize the level set
+    𝚽ⁿ = initial_level_set(size(img))
 
-    if ndims(img) == 2
-        return @. -λ₁ * (img - c₁)^2 + λ₂ * (img - c₂)^2
-    elseif ndims(img) == 3
-        return -λ₁ .* sum((img .- c₁).^2, dims=3) .+ λ₂ .* sum((img .- c₂).^2, dims=3)
+    # Preallocation and initializtion
+    H𝚽 = trues(size(img)...)
+    𝚽ⁿ⁺¹ = similar(𝚽ⁿ)
+
+    # The upper bounds of 𝚽ⁿ's coordinates is `m` and `n`
+    s, t = first(CartesianIndices(𝚽ⁿ))[1], first(CartesianIndices(𝚽ⁿ))[2]
+    m, n = last(CartesianIndices(𝚽ⁿ))[1], last(CartesianIndices(𝚽ⁿ))[2]
+    
+    while (del > tol) & (iter < max_iter)
+        ϵ = 1e-8
+        diff = 0
+
+        # Calculate the average intensities
+        @. H𝚽 = 𝚽ⁿ > 0 # Heaviside function
+        c₁, c₂ = calculate_averages(img, H𝚽, area, ∫u₀) # Compute c₁(𝚽ⁿ), c₂(𝚽ⁿ)
+
+        # Calculate the variation of level set 𝚽ⁿ
+        for idx in CartesianIndices(𝚽ⁿ) # Denote idx = (x, y)
+            # i₊ ≔ i₊(x, y), denotes 𝚽ⁿ(x, y + 1)'s CartesianIndex
+            # j₊ ≔ j₊(x, y), denotes 𝚽ⁿ(x + 1, y)'s CartesianIndex
+            # i₋ ≔ i₋(x, y), denotes 𝚽ⁿ(x, y - 1)'s CartesianIndex
+            # j₋ ≔ j₋(x, y), denotes 𝚽ⁿ(x - 1, y)'s CartesianIndex
+            # Taking notice that if 𝚽ⁿ(x, y) is the boundary of 𝚽ⁿ, than 𝚽ⁿ(x ± 1, y), 𝚽ⁿ(x, y ± 1) might be out of bound.
+            # So the pixel values of these outbounded terms are equal to 𝚽ⁿ(x, y)
+            i₊ = idx[2] != n ? idx + CartesianIndex(0, 1) : idx
+            j₊ = idx[1] != m ? idx + CartesianIndex(1, 0) : idx
+            i₋ = idx[2] != t ? idx - CartesianIndex(0, 1) : idx
+            j₋ = idx[1] != s ? idx - CartesianIndex(1, 0) : idx
+
+            𝚽₀  = 𝚽ⁿ[idx] # 𝚽ⁿ(x, y)
+            u₀ = img[idx] # u₀(x, y)
+            𝚽ᵢ₊ = 𝚽ⁿ[i₊] # 𝚽ⁿ(x, y + 1)
+            𝚽ⱼ₊ = 𝚽ⁿ[j₊] # 𝚽ⁿ(x + 1, y)
+            𝚽ᵢ₋ = 𝚽ⁿ[i₋] # 𝚽ⁿ(x, y - 1)
+            𝚽ⱼ₋ = 𝚽ⁿ[j₋] # 𝚽ⁿ(x - 1, y)
+
+            # Solve the PDE of equation 9 in paper[3]
+            C₁ = 1. / sqrt(ϵ + (𝚽ᵢ₊ - 𝚽₀)^2 + (𝚽ⱼ₊ - 𝚽ⱼ₋)^2 / 4.)
+            C₂ = 1. / sqrt(ϵ + (𝚽₀ - 𝚽ᵢ₋)^2 + (𝚽ⱼ₊ - 𝚽ⱼ₋)^2 / 4.)
+            C₃ = 1. / sqrt(ϵ + (𝚽ᵢ₊ - 𝚽ᵢ₋)^2 / 4. + (𝚽ⱼ₊ - 𝚽₀)^2)
+            C₄ = 1. / sqrt(ϵ + (𝚽ᵢ₊ - 𝚽ᵢ₋)^2 / 4. + (𝚽₀ - 𝚽ⱼ₋)^2)
+
+            K = 𝚽ᵢ₊ * C₁ + 𝚽ᵢ₋ * C₂ + 𝚽ⱼ₊ * C₃ + 𝚽ⱼ₋ * C₄
+            δₕ = h / (h^2 + 𝚽₀^2) # Regularised Dirac function
+            difference_from_average = - λ₁ * (u₀ - c₁) ^ 2 + λ₂ * (u₀ - c₂) ^ 2
+
+            𝚽ⁿ⁺¹[idx] = 𝚽 = (𝚽₀ + Δt * δₕ * (μ * K + difference_from_average)) / (1. + μ * Δt * δₕ * (C₁ + C₂ + C₃ + C₄))
+            diff += (𝚽 - 𝚽₀)^2
+        end
+
+        del = sqrt(diff / area)
+
+        if reinitial_flag
+            # Reinitialize 𝚽 to be the signed distance function to its zero level set
+            reinitialize(𝚽ⁿ⁺¹, 𝚽ⁿ, Δt, h)
+        else
+            𝚽ⁿ .= 𝚽ⁿ⁺¹
+        end
+  
+        iter += 1
     end
-end
-# H𝚽 = LazyArray(@~ @. 1. * (𝚽ⁿ > 0))
-function _calculate_averages(img::AbstractArray{T, N}, 𝚽ⁿ::AbstractArray{T, M}) where {T<:Real, N, M}
-    ∫H𝚽 = ∫H𝚽ⁱ = ∫u₀H𝚽 = ∫u₀H𝚽ⁱ = 0
 
-    for i in CartesianIndices(img)
-        H𝚽 = 1. * (𝚽ⁿ[i] > 0)
-        H𝚽ⁱ = 1. - H𝚽
-        ∫H𝚽 += H𝚽
-        ∫H𝚽ⁱ += H𝚽ⁱ
-        ∫u₀H𝚽 += img[i] * H𝚽
-        ∫u₀H𝚽ⁱ += img[i] * H𝚽ⁱ
-    end
-    if ∫H𝚽 != 0
-        c₁ = ∫u₀H𝚽 ./ ∫H𝚽
-    end
-    if ∫H𝚽ⁱ != 0
-        c₂ = ∫u₀H𝚽ⁱ ./ ∫H𝚽ⁱ
-    end
-
-    return c₁, c₂
-end
-
-function δₕ(x::AbstractArray{T,N}, h::Float64=1.0) where {T<:Real, N}
-    return @~ @. h / (h^2 + x^2)
+    return 𝚽ⁿ .> 0
 end
 
 function initial_level_set(shape::Tuple)
@@ -66,187 +188,71 @@ function initial_level_set(shape::Tuple)
     𝚽₀ = @. sin(pi / 5 * x₀) * sin(pi / 5 * y₀)
 end
 
-function chan_vese(img::GenericGrayImage;
-                    μ::Float64=0.25,
-                    λ₁::Float64=1.0,
-                    λ₂::Float64=1.0,
-                    tol::Float64=1e-3,
-                    max_iter::Int64=500,
-                    Δt::Float64=0.5,
-                    reinitial_flag::Bool=false) #where {T<:Real, N}
-    img = float64.(channelview(img))
-    iter = 0
-    h = 1.0
-    m, n = size(img)
-    s = m * n
-    𝚽ⁿ = initial_level_set((m, n)) # size: m * n
-    del = tol + 1
-    img .= img .- minimum(img)
-
-    if maximum(img) != 0
-        img .= img ./ maximum(img)
+function calculate_averages(img::AbstractArray{T, N}, H𝚽::AbstractArray{S, N}, area::Int64, ∫u₀::Float64) where {T<:Real, S<:Bool, N}
+    ∫u₀H𝚽 = 0
+    ∫H𝚽 = 0
+    for i in eachindex(img)
+        if H𝚽[i]
+            ∫u₀H𝚽 += img[i]
+            ∫H𝚽 += 1
+        end
     end
+    ∫H𝚽ⁱ = area - ∫H𝚽
+    ∫u₀H𝚽ⁱ = ∫u₀ - ∫u₀H𝚽
+    c₁ = ∫u₀H𝚽 / max(1, ∫H𝚽)
+    c₂ = ∫u₀H𝚽ⁱ / max(1, ∫H𝚽ⁱ)
 
-    diff = 0
-    H𝚽 = similar(𝚽ⁿ)
-    u₀H𝚽 = similar(img)
-    ∫u₀ = sum(img)
-    𝚽ᵢ₊ᶜ = zeros(m, 1)
-
-
-
-    while (del > tol) & (iter < max_iter)
-        ϵ = 1e-16
-
-        @. H𝚽 = 1. * (𝚽ⁿ > 0) # size = (m, n)    
-        @. u₀H𝚽 = img * H𝚽 # size = (m, n) or (m, n, 3)
-
-        ∫H𝚽 = sum(H𝚽)
-        ∫u₀H𝚽 = sum(u₀H𝚽) # (1,)
-        ∫H𝚽ⁱ = s - ∫H𝚽
-        ∫u₀H𝚽ⁱ = ∫u₀ - ∫u₀H𝚽
-
-        if ∫H𝚽 != 0
-            c₁ = ∫u₀H𝚽 ./ ∫H𝚽
-        end
-        if ∫H𝚽ⁱ != 0
-            c₂ = ∫u₀H𝚽ⁱ ./ ∫H𝚽ⁱ
-        end
-
-        ind = CartesianIndices(reshape(collect(1 : 9), 3, 3)) .- CartesianIndex(2, 2)
-        𝚽ⱼ₊ = 0
-
-        for y in 1:n-1
-            𝚽ⱼ₊ = 0
-            for x in 1:m-1
-                i = CartesianIndex(x, y)
-                𝚽₀ = 𝚽ⁿ[i]
-                u₀ = img[i]
-                𝚽ᵢ₋ = 𝚽ᵢ₊ᶜ[i[1]]
-                𝚽ᵢ₊ᶜ[i[1]] = 𝚽ᵢ₊ = 𝚽ⁿ[i + ind[2, 3]] - 𝚽₀ # except i[2] = n
-                𝚽ⱼ₋ = 𝚽ⱼ₊
-                𝚽ⱼ₊ = 𝚽ⁿ[i + ind[3, 2]] - 𝚽₀ # except i[2] = m
-                𝚽ᵢ = 𝚽ᵢ₊ + 𝚽ᵢ₋
-                𝚽ⱼ = 𝚽ⱼ₊ + 𝚽ⱼ₋
-                t1 = 𝚽₀ + 𝚽ᵢ₊
-                t2 = 𝚽₀ - 𝚽ᵢ₋
-                t3 = 𝚽₀ + 𝚽ⱼ₊
-                t4 = 𝚽₀ - 𝚽ⱼ₋
-
-                C₁ = 1. / sqrt(ϵ + 𝚽ᵢ₊^2 + 𝚽ⱼ^2 / 4.)
-                C₂ = 1. / sqrt(ϵ + 𝚽ᵢ₋^2 + 𝚽ⱼ^2 / 4.)
-                C₃ = 1. / sqrt(ϵ + 𝚽ᵢ^2 / 4. + 𝚽ⱼ₊^2)
-                C₄ = 1. / sqrt(ϵ + 𝚽ᵢ^2 / 4. + 𝚽ⱼ₋^2)
-
-                K = t1 * C₁ + t2 * C₂ + t3 * C₃ + t4 * C₄
-                δₕ = h / (h^2 + 𝚽₀^2)
-
-                𝚽ⁿ[i] = 𝚽 = (𝚽₀ + Δt * δₕ * (μ * K - λ₁ * (u₀ - c₁) ^ 2 + λ₂ * (u₀ - c₂) ^ 2)) / (1. + μ * Δt * δₕ * (C₁ + C₂ + C₃ + C₄))
-                diff += (𝚽 - 𝚽₀)^2
-            end
-            i = CartesianIndex(m, y)
-            𝚽₀ = 𝚽ⁿ[i]
-            u₀ = img[i]
-            𝚽ᵢ₋ = 𝚽ᵢ₊ᶜ[i[1]]
-            𝚽ᵢ₊ᶜ[i[1]] = 𝚽ᵢ₊ = 𝚽ⁿ[i + ind[2, 3]] - 𝚽₀ # except i[2] = n
-            𝚽ⱼ₋ = 𝚽ⱼ₊
-            𝚽ⱼ₊ = 0 # except i[2] = m
-            𝚽ᵢ = 𝚽ᵢ₊ + 𝚽ᵢ₋
-            𝚽ⱼ = 𝚽ⱼ₊ + 𝚽ⱼ₋
-            t1 = 𝚽₀ + 𝚽ᵢ₊
-            t2 = 𝚽₀ - 𝚽ᵢ₋
-            t3 = 𝚽₀ + 𝚽ⱼ₊
-            t4 = 𝚽₀ - 𝚽ⱼ₋
-
-            C₁ = 1. / sqrt(ϵ + 𝚽ᵢ₊^2 + 𝚽ⱼ^2 / 4.)
-            C₂ = 1. / sqrt(ϵ + 𝚽ᵢ₋^2 + 𝚽ⱼ^2 / 4.)
-            C₃ = 1. / sqrt(ϵ + 𝚽ᵢ^2 / 4. + 𝚽ⱼ₊^2)
-            C₄ = 1. / sqrt(ϵ + 𝚽ᵢ^2 / 4. + 𝚽ⱼ₋^2)
-
-            K = t1 * C₁ + t2 * C₂ + t3 * C₃ + t4 * C₄
-            δₕ = h / (h^2 + 𝚽₀^2)
-
-            𝚽ⁿ[i] = 𝚽 = (𝚽₀ + Δt * δₕ * (μ * K - λ₁ * (u₀ - c₁) ^ 2 + λ₂ * (u₀ - c₂) ^ 2)) / (1. + μ * Δt * δₕ * (C₁ + C₂ + C₃ + C₄))
-            diff += (𝚽 - 𝚽₀)^2  
-        end
-
-        𝚽ᵢ₊ = 0
-        𝚽ⱼ₊ = 0
-        for x in 1:m-1
-            i = CartesianIndex(x, n)
-            𝚽₀ = 𝚽ⁿ[i]
-            u₀ = img[i]
-            𝚽ᵢ₋ = 𝚽ᵢ₊ᶜ[i[1]]
-            𝚽ᵢ₊ᶜ[i[1]] = 0
-            𝚽ⱼ₋ = 𝚽ⱼ₊
-            𝚽ⱼ₊ = 𝚽ⁿ[i + ind[3, 2]] - 𝚽₀ # except i[2] = m
-            𝚽ᵢ = 𝚽ᵢ₊ + 𝚽ᵢ₋
-            𝚽ⱼ = 𝚽ⱼ₊ + 𝚽ⱼ₋
-            t1 = 𝚽₀ + 𝚽ᵢ₊
-            t2 = 𝚽₀ - 𝚽ᵢ₋
-            t3 = 𝚽₀ + 𝚽ⱼ₊
-            t4 = 𝚽₀ - 𝚽ⱼ₋
-
-            C₁ = 1. / sqrt(ϵ + 𝚽ᵢ₊^2 + 𝚽ⱼ^2 / 4.)
-            C₂ = 1. / sqrt(ϵ + 𝚽ᵢ₋^2 + 𝚽ⱼ^2 / 4.)
-            C₃ = 1. / sqrt(ϵ + 𝚽ᵢ^2 / 4. + 𝚽ⱼ₊^2)
-            C₄ = 1. / sqrt(ϵ + 𝚽ᵢ^2 / 4. + 𝚽ⱼ₋^2)
-
-            K = t1 * C₁ + t2 * C₂ + t3 * C₃ + t4 * C₄
-            δₕ = h / (h^2 + 𝚽₀^2)
-
-            𝚽ⁿ[i] = 𝚽 = (𝚽₀ + Δt * δₕ * (μ * K - λ₁ * (u₀ - c₁) ^ 2 + λ₂ * (u₀ - c₂) ^ 2)) / (1. + μ * Δt * δₕ * (C₁ + C₂ + C₃ + C₄))
-            diff += (𝚽 - 𝚽₀)^2  
-        end
-        i = CartesianIndex(m, n)
-        𝚽₀ = 𝚽ⁿ[i]
-        u₀ = img[i]
-        𝚽ᵢ₋ = 𝚽ᵢ₊ᶜ[i[1]]
-        𝚽ᵢ₊ᶜ[i[1]] = 0
-        𝚽ⱼ₋ = 𝚽ⱼ₊
-        𝚽ⱼ₊ = 0
-        𝚽ᵢ = 𝚽ᵢ₊ + 𝚽ᵢ₋
-        𝚽ⱼ = 𝚽ⱼ₊ + 𝚽ⱼ₋
-        t1 = 𝚽₀ + 𝚽ᵢ₊
-        t2 = 𝚽₀ - 𝚽ᵢ₋
-        t3 = 𝚽₀ + 𝚽ⱼ₊
-        t4 = 𝚽₀ - 𝚽ⱼ₋
-
-        C₁ = 1. / sqrt(ϵ + 𝚽ᵢ₊^2 + 𝚽ⱼ^2 / 4.)
-        C₂ = 1. / sqrt(ϵ + 𝚽ᵢ₋^2 + 𝚽ⱼ^2 / 4.)
-        C₃ = 1. / sqrt(ϵ + 𝚽ᵢ^2 / 4. + 𝚽ⱼ₊^2)
-        C₄ = 1. / sqrt(ϵ + 𝚽ᵢ^2 / 4. + 𝚽ⱼ₋^2)
-
-        K = t1 * C₁ + t2 * C₂ + t3 * C₃ + t4 * C₄
-        δₕ = h / (h^2 + 𝚽₀^2)
-
-        𝚽ⁿ[i] = 𝚽 = (𝚽₀ + Δt * δₕ * (μ * K - λ₁ * (u₀ - c₁) ^ 2 + λ₂ * (u₀ - c₂) ^ 2)) / (1. + μ * Δt * δₕ * (C₁ + C₂ + C₃ + C₄))
-        diff += (𝚽 - 𝚽₀)^2
-
-        del = sqrt(diff / s)
-        diff = 0
-
-        iter += 1
-    end
-
-    return 𝚽ⁿ, iter
+    return c₁, c₂
 end
 
-img_gray = testimage("cameraman")
+function calculate_reinitial(𝚽::AbstractArray{T, M}, 𝚿::AbstractArray{T, M}, Δt::Float64, h::Float64) where {T<:Real, M}
+    ϵ = 1e-8
 
-μ=0.25
-λ₁=1.0
-λ₂=1.0
-tol=1e-3
-max_iter=200
-Δt=0.5
+    s, t = first(CartesianIndices(𝚽))[1], first(CartesianIndices(𝚽))[2]
+    m, n = last(CartesianIndices(𝚽))[1], last(CartesianIndices(𝚽))[2]
 
-𝚽, iter_num = chan_vese(img_gray, μ=0.25, λ₁=1.0, λ₂=1.0, tol=1e-3, max_iter=200, Δt=0.5, reinitial_flag=false)
+    for idx in CartesianIndices(𝚽)
+        i₊ = idx[2] != n ? idx + CartesianIndex(0, 1) : idx
+        j₊ = idx[1] != m ? idx + CartesianIndex(1, 0) : idx
+        i₋ = idx[2] != t ? idx - CartesianIndex(0, 1) : idx
+        j₋ = idx[1] != s ? idx - CartesianIndex(1, 0) : idx
+        𝚽₀  = 𝚽[idx]               # 𝚽(i, j)
+        𝚽ᵢ₊ = 𝚽[i₊]                # 𝚽(i + 1, j)
+        𝚽ⱼ₊ = 𝚽[j₊]                # 𝚽(i, j + 1)
+        𝚽ᵢ₋ = 𝚽[i₋]                # 𝚽(i - 1, j)
+        𝚽ⱼ₋ = 𝚽[j₋]                # 𝚽(i, j - 1)
 
-@btime chan_vese(img_gray, μ=0.25, λ₁=1.0, λ₂=1.0, tol=1e-3, max_iter=200, Δt=0.5, reinitial_flag=false);
+        a = (𝚽₀ - 𝚽ᵢ₋) / h
+        b = (𝚽ᵢ₊ - 𝚽₀) / h
+        c = (𝚽₀ - 𝚽ⱼ₋) / h
+        d = (𝚽ⱼ₊ - 𝚽₀) / h
 
-segmentation = 𝚽 .> 0
-print(iter_num)
-𝚽 .= 𝚽 .- minimum(𝚽)
+        a⁺ = max(a, 0)
+        a⁻ = min(a, 0)
+        b⁺ = max(b, 0)
+        b⁻ = min(b, 0)
+        c⁺ = max(c, 0)
+        c⁻ = min(c, 0)
+        d⁺ = max(d, 0)
+        d⁻ = min(d, 0)
 
-colorview(Gray, segmentation)
+        G = 0
+        if 𝚽₀ > 0
+            G += sqrt(max(a⁺^2, b⁻^2) + max(c⁺^2, d⁻^2)) - 1
+        elseif 𝚽₀ < 0
+            G += sqrt(max(a⁻^2, b⁺^2) + max(c⁻^2, d⁺^2)) - 1
+        end
+        sign𝚽 = 𝚽₀ / sqrt(𝚽₀^2 + ϵ)
+        𝚿[idx] = 𝚽₀ - Δt * sign𝚽 * G
+    end
+
+    return 𝚿
+end
+
+function reinitialize(𝚽::AbstractArray{T, M}, 𝚿::AbstractArray{T, M}, Δt::Float64, h::Float64, max_reiter::Int64=5) where {T<:Real, M}
+    iter = 0
+    while iter < max_reiter
+        𝚽 .= calculate_reinitial(𝚽, 𝚿, Δt, h)
+        iter += 1
+    end
+end
