@@ -1,5 +1,5 @@
 """
-    chan_vese(img; μ, λ₁, λ₂, tol, max_iter, Δt, reinitial_flag)
+    chan_vese(img; [μ], [λ₁], [λ₂], [tol], [max_iter], [Δt], [reinitial_flag])
 
 Segments image `img` by evolving a level set. An active contour model 
 which can be used to segment objects without clearly defined boundaries.
@@ -50,7 +50,7 @@ iterations is below `tol`, then the solution will be assumed to be reached.
 
 Default: 1e-3
 
-## `max_iter::Int64`
+## `max_iter::Int`
 
 The argument `max_iter` controls the maximum of iteration number.
 
@@ -80,7 +80,7 @@ using ImageSegmentation
 
 img = testimage("cameraman")
 
-cv_result = chan_vese(img, μ=0.25, λ₁=1.0, λ₂=1.0, tol=1e-3, max_iter=200, Δt=0.5, reinitial_flag=false)
+cv_result = chan_vese(img, max_iter=200)
 ```
 
 # References
@@ -96,11 +96,12 @@ function chan_vese(img::GenericGrayImage;
                    λ₁::Float64=1.0,
                    λ₂::Float64=1.0,
                    tol::Float64=1e-3,
-                   max_iter::Int64=500,
+                   max_iter::Int=500,
                    Δt::Float64=0.5,
                    reinitial_flag::Bool=false)
     # Signs used in the codes and comments mainly follow paper[3] in the References.
     img = float64.(channelview(img))
+    N = ndims(img)
     iter = 0
     h = 1.0
     del = tol + 1
@@ -111,6 +112,7 @@ function chan_vese(img::GenericGrayImage;
     end
 
     # Precalculation of some constants which helps simplify some integration   
+    # area = length(img) # area = ∫H𝚽 + ∫H𝚽ⁱ
     area = length(img) # area = ∫H𝚽 + ∫H𝚽ⁱ
     ∫u₀ = sum(img)     # ∫u₀ = ∫u₀H𝚽 + ∫u₀H𝚽ⁱ
 
@@ -121,9 +123,9 @@ function chan_vese(img::GenericGrayImage;
     H𝚽 = trues(size(img)...)
     𝚽ⁿ⁺¹ = similar(𝚽ⁿ)
 
-    # The upper bounds of 𝚽ⁿ's coordinates is `m` and `n`
-    s, t = first(CartesianIndices(𝚽ⁿ))[1], first(CartesianIndices(𝚽ⁿ))[2]
-    m, n = last(CartesianIndices(𝚽ⁿ))[1], last(CartesianIndices(𝚽ⁿ))[2]
+    Δ = ntuple(d -> CartesianIndex(ntuple(i -> i == d ? 1 : 0, N)), N)
+    idx_first = first(CartesianIndices(𝚽ⁿ))
+    idx_last = last(CartesianIndices(𝚽ⁿ))
     
     while (del > tol) & (iter < max_iter)
         ϵ = 1e-8
@@ -134,36 +136,23 @@ function chan_vese(img::GenericGrayImage;
         c₁, c₂ = calculate_averages(img, H𝚽, area, ∫u₀) # Compute c₁(𝚽ⁿ), c₂(𝚽ⁿ)
 
         # Calculate the variation of level set 𝚽ⁿ
-        for idx in CartesianIndices(𝚽ⁿ) # Denote idx = (x, y)
-            # i₊ ≔ i₊(x, y), denotes 𝚽ⁿ(x, y + 1)'s CartesianIndex
-            # j₊ ≔ j₊(x, y), denotes 𝚽ⁿ(x + 1, y)'s CartesianIndex
-            # i₋ ≔ i₋(x, y), denotes 𝚽ⁿ(x, y - 1)'s CartesianIndex
-            # j₋ ≔ j₋(x, y), denotes 𝚽ⁿ(x - 1, y)'s CartesianIndex
-            # Taking notice that if 𝚽ⁿ(x, y) is the boundary of 𝚽ⁿ, than 𝚽ⁿ(x ± 1, y), 𝚽ⁿ(x, y ± 1) might be out of bound.
-            # So the pixel values of these outbounded terms are equal to 𝚽ⁿ(x, y)
-            i₊ = idx[2] != n ? idx + CartesianIndex(0, 1) : idx
-            j₊ = idx[1] != m ? idx + CartesianIndex(1, 0) : idx
-            i₋ = idx[2] != t ? idx - CartesianIndex(0, 1) : idx
-            j₋ = idx[1] != s ? idx - CartesianIndex(1, 0) : idx
-
+        @inbounds @simd for idx in CartesianIndices(𝚽ⁿ)
             𝚽₀  = 𝚽ⁿ[idx] # 𝚽ⁿ(x, y)
-            u₀ = img[idx] # u₀(x, y)
-            𝚽ᵢ₊ = 𝚽ⁿ[i₊] # 𝚽ⁿ(x, y + 1)
-            𝚽ⱼ₊ = 𝚽ⁿ[j₊] # 𝚽ⁿ(x + 1, y)
-            𝚽ᵢ₋ = 𝚽ⁿ[i₋] # 𝚽ⁿ(x, y - 1)
-            𝚽ⱼ₋ = 𝚽ⁿ[j₋] # 𝚽ⁿ(x - 1, y)
+            u₀ = img[idx]  # u₀(x, y)
+            Δ₊ = ntuple(d -> idx[d] != idx_last[d]  ? idx + Δ[d] : idx, N)
+            Δ₋ = ntuple(d -> idx[d] != idx_first[d] ? idx - Δ[d] : idx, N)
+            𝚽₊ = broadcast(i -> 𝚽ⁿ[i], Δ₊)
+            𝚽₋ = broadcast(i -> 𝚽ⁿ[i], Δ₋)
 
             # Solve the PDE of equation 9 in paper[3]
-            C₁ = 1. / sqrt(ϵ + (𝚽ᵢ₊ - 𝚽₀)^2 + (𝚽ⱼ₊ - 𝚽ⱼ₋)^2 / 4.)
-            C₂ = 1. / sqrt(ϵ + (𝚽₀ - 𝚽ᵢ₋)^2 + (𝚽ⱼ₊ - 𝚽ⱼ₋)^2 / 4.)
-            C₃ = 1. / sqrt(ϵ + (𝚽ᵢ₊ - 𝚽ᵢ₋)^2 / 4. + (𝚽ⱼ₊ - 𝚽₀)^2)
-            C₄ = 1. / sqrt(ϵ + (𝚽ᵢ₊ - 𝚽ᵢ₋)^2 / 4. + (𝚽₀ - 𝚽ⱼ₋)^2)
+            C₊ = ntuple(d -> 1. / sqrt(ϵ + (𝚽₊[d] - 𝚽₀)^2 + (𝚽₊[d % N + 1] - 𝚽₋[d % N + 1])^2 / 4.), N)
+            C₋ = ntuple(d -> 1. / sqrt(ϵ + (𝚽₋[d] - 𝚽₀)^2 + (𝚽₊[d % N + 1] - 𝚽₋[d % N + 1])^2 / 4.), N)
 
-            K = 𝚽ᵢ₊ * C₁ + 𝚽ᵢ₋ * C₂ + 𝚽ⱼ₊ * C₃ + 𝚽ⱼ₋ * C₄
+            K = sum(𝚽₊ .* C₊) + sum(𝚽₋ .* C₋)
             δₕ = h / (h^2 + 𝚽₀^2) # Regularised Dirac function
             difference_from_average = - λ₁ * (u₀ - c₁) ^ 2 + λ₂ * (u₀ - c₂) ^ 2
 
-            𝚽ⁿ⁺¹[idx] = 𝚽 = (𝚽₀ + Δt * δₕ * (μ * K + difference_from_average)) / (1. + μ * Δt * δₕ * (C₁ + C₂ + C₃ + C₄))
+            𝚽ⁿ⁺¹[idx] = 𝚽 = (𝚽₀ + Δt * δₕ * (μ * K + difference_from_average)) / (1. + μ * Δt * δₕ * (sum(C₊) + sum(C₋)))
             diff += (𝚽 - 𝚽₀)^2
         end
 
@@ -171,7 +160,7 @@ function chan_vese(img::GenericGrayImage;
 
         if reinitial_flag
             # Reinitialize 𝚽 to be the signed distance function to its zero level set
-            reinitialize(𝚽ⁿ⁺¹, 𝚽ⁿ, Δt, h)
+            reinitialize!(𝚽ⁿ⁺¹, 𝚽ⁿ, Δt, h)
         else
             𝚽ⁿ .= 𝚽ⁿ⁺¹
         end
@@ -191,7 +180,7 @@ end
 function calculate_averages(img::AbstractArray{T, N}, H𝚽::AbstractArray{S, N}, area::Int64, ∫u₀::Float64) where {T<:Real, S<:Bool, N}
     ∫u₀H𝚽 = 0
     ∫H𝚽 = 0
-    for i in eachindex(img)
+    @inbounds for i in eachindex(img)
         if H𝚽[i]
             ∫u₀H𝚽 += img[i]
             ∫H𝚽 += 1
@@ -207,40 +196,29 @@ end
 
 function calculate_reinitial(𝚽::AbstractArray{T, M}, 𝚿::AbstractArray{T, M}, Δt::Float64, h::Float64) where {T<:Real, M}
     ϵ = 1e-8
+    N = ndims(𝚽)
 
-    s, t = first(CartesianIndices(𝚽))[1], first(CartesianIndices(𝚽))[2]
-    m, n = last(CartesianIndices(𝚽))[1], last(CartesianIndices(𝚽))[2]
+    Δ = ntuple(d -> CartesianIndex(ntuple(i -> i == d ? 1 : 0, N)), N)
+    idx_first = first(CartesianIndices(𝚽))
+    idx_last  = last(CartesianIndices(𝚽))
 
-    for idx in CartesianIndices(𝚽)
-        i₊ = idx[2] != n ? idx + CartesianIndex(0, 1) : idx
-        j₊ = idx[1] != m ? idx + CartesianIndex(1, 0) : idx
-        i₋ = idx[2] != t ? idx - CartesianIndex(0, 1) : idx
-        j₋ = idx[1] != s ? idx - CartesianIndex(1, 0) : idx
-        𝚽₀  = 𝚽[idx]               # 𝚽(i, j)
-        𝚽ᵢ₊ = 𝚽[i₊]                # 𝚽(i + 1, j)
-        𝚽ⱼ₊ = 𝚽[j₊]                # 𝚽(i, j + 1)
-        𝚽ᵢ₋ = 𝚽[i₋]                # 𝚽(i - 1, j)
-        𝚽ⱼ₋ = 𝚽[j₋]                # 𝚽(i, j - 1)
+    @inbounds @simd for idx in CartesianIndices(𝚽)
+        𝚽₀  = 𝚽[idx] # 𝚽ⁿ(x, y)
+        Δ₊ = ntuple(d -> idx[d] != idx_last[d]  ? idx + Δ[d] : idx, N)
+        Δ₋ = ntuple(d -> idx[d] != idx_first[d] ? idx - Δ[d] : idx, N)
+        Δ𝚽₊ = broadcast(i -> (𝚽[i] - 𝚽₀) / h, Δ₊)
+        Δ𝚽₋ = broadcast(i -> (𝚽₀ - 𝚽[i]) / h, Δ₋)
 
-        a = (𝚽₀ - 𝚽ᵢ₋) / h
-        b = (𝚽ᵢ₊ - 𝚽₀) / h
-        c = (𝚽₀ - 𝚽ⱼ₋) / h
-        d = (𝚽ⱼ₊ - 𝚽₀) / h
-
-        a⁺ = max(a, 0)
-        a⁻ = min(a, 0)
-        b⁺ = max(b, 0)
-        b⁻ = min(b, 0)
-        c⁺ = max(c, 0)
-        c⁻ = min(c, 0)
-        d⁺ = max(d, 0)
-        d⁻ = min(d, 0)
+        maxΔ𝚽₊ = max.(Δ𝚽₊, 0)
+        minΔ𝚽₊ = min.(Δ𝚽₊, 0)
+        maxΔ𝚽₋ = max.(Δ𝚽₋, 0)
+        minΔ𝚽₋ = min.(Δ𝚽₋, 0)
 
         G = 0
         if 𝚽₀ > 0
-            G += sqrt(max(a⁺^2, b⁻^2) + max(c⁺^2, d⁻^2)) - 1
+            G += sqrt(sum(max.(minΔ𝚽₊.^2, maxΔ𝚽₋.^2))) - 1
         elseif 𝚽₀ < 0
-            G += sqrt(max(a⁻^2, b⁺^2) + max(c⁻^2, d⁺^2)) - 1
+            G += sqrt(sum(max.(maxΔ𝚽₊.^2, minΔ𝚽₋.^2))) - 1
         end
         sign𝚽 = 𝚽₀ / sqrt(𝚽₀^2 + ϵ)
         𝚿[idx] = 𝚽₀ - Δt * sign𝚽 * G
@@ -249,10 +227,8 @@ function calculate_reinitial(𝚽::AbstractArray{T, M}, 𝚿::AbstractArray{T, M
     return 𝚿
 end
 
-function reinitialize(𝚽::AbstractArray{T, M}, 𝚿::AbstractArray{T, M}, Δt::Float64, h::Float64, max_reiter::Int64=5) where {T<:Real, M}
-    iter = 0
-    while iter < max_reiter
+function reinitialize!(𝚽::AbstractArray{T, M}, 𝚿::AbstractArray{T, M}, Δt::Float64, h::Float64, max_reiter::Int=5) where {T<:Real, M}
+    for i in 1 : max_reiter
         𝚽 .= calculate_reinitial(𝚽, 𝚿, Δt, h)
-        iter += 1
     end
 end
