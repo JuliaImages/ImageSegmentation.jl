@@ -139,14 +139,14 @@ function chan_vese(img::GenericGrayImage;
         @inbounds @simd for idx in CartesianIndices(𝚽ⁿ)
             𝚽₀  = 𝚽ⁿ[idx] # 𝚽ⁿ(x, y)
             u₀ = img[idx]  # u₀(x, y)
-            Δ₊ = ntuple(d -> idx[d] != idx_last[d]  ? idx + Δ[d] : idx, N)
-            Δ₋ = ntuple(d -> idx[d] != idx_first[d] ? idx - Δ[d] : idx, N)
-            𝚽₊ = broadcast(i -> 𝚽ⁿ[i], Δ₊)
-            𝚽₋ = broadcast(i -> 𝚽ⁿ[i], Δ₋)
+            𝚽₊ = broadcast(i->𝚽ⁿ[i], ntuple(d -> idx[d] != idx_last[d]  ? idx + Δ[d] : idx, N))
+            𝚽₋ = broadcast(i->𝚽ⁿ[i], ntuple(d -> idx[d] != idx_first[d] ? idx - Δ[d] : idx, N))
 
             # Solve the PDE of equation 9 in paper[3]
-            C₊ = ntuple(d -> 1. / sqrt(ϵ + (𝚽₊[d] - 𝚽₀)^2 + (𝚽₊[d % N + 1] - 𝚽₋[d % N + 1])^2 / 4.), N)
-            C₋ = ntuple(d -> 1. / sqrt(ϵ + (𝚽₋[d] - 𝚽₀)^2 + (𝚽₊[d % N + 1] - 𝚽₋[d % N + 1])^2 / 4.), N)
+            center_diff = ntuple(d -> (𝚽₊[d] - 𝚽₋[d])^2 / 4., N)
+            sum_center_diff = sum(center_diff)
+            C₊ = ntuple(d -> 1. / sqrt(ϵ + (𝚽₊[d] - 𝚽₀)^2 + sum_center_diff - center_diff[d]), N)
+            C₋ = ntuple(d -> 1. / sqrt(ϵ + (𝚽₋[d] - 𝚽₀)^2 + sum_center_diff - center_diff[d]), N)
 
             K = sum(𝚽₊ .* C₊) + sum(𝚽₋ .* C₋)
             δₕ = h / (h^2 + 𝚽₀^2) # Regularised Dirac function
@@ -171,10 +171,17 @@ function chan_vese(img::GenericGrayImage;
     return 𝚽ⁿ .> 0
 end
 
-function initial_level_set(shape::Tuple)
+function initial_level_set(shape::Tuple{Int64, Int64})
     x₀ = reshape(collect(0:shape[begin]-1), shape[begin], 1)
     y₀ = reshape(collect(0:shape[begin+1]-1), 1, shape[begin+1])
     𝚽₀ = @. sin(pi / 5 * x₀) * sin(pi / 5 * y₀)
+end
+
+function initial_level_set(shape::Tuple{Int64, Int64, Int64})
+    x₀ = reshape(collect(0:shape[begin]-1), shape[begin], 1, 1)
+    y₀ = reshape(collect(0:shape[begin+1]-1), 1, shape[begin+1], 1)
+    z₀ = reshape(collect(0:shape[begin+2]-1), 1, 1, shape[begin+2])
+    𝚽₀ = @. sin(pi / 5 * x₀) * sin(pi / 5 * y₀) * sin(pi / 5 * z₀)
 end
 
 function calculate_averages(img::AbstractArray{T, N}, H𝚽::AbstractArray{S, N}, area::Int64, ∫u₀::Float64) where {T<:Real, S<:Bool, N}
