@@ -5,6 +5,7 @@ import Base: show
 using LinearAlgebra, Statistics
 using DataStructures, StaticArrays, ImageCore, ImageFiltering, ImageMorphology, LightGraphs, SimpleWeightedGraphs, RegionTrees, Distances, StaticArrays, Clustering, MetaGraphs
 using ImageCore.ColorVectorSpace: MathTypes
+using ImageBase.ImageCore: GenericGrayImage, GenericImage
 import Clustering: kmeans, fuzzy_cmeans
 
 const PairOrTuple{K,V} = Union{Pair{K,V},Tuple{K,V}}
@@ -21,6 +22,7 @@ include("meanshift.jl")
 include("clustering.jl")
 include("merge_segments.jl")
 include("deprecations.jl")
+include("chan_vese.jl")
 
 export
     #accessor methods
@@ -49,6 +51,7 @@ export
     kmeans,
     fuzzy_cmeans,
     merge_segments,
+    chan_vese,
 
     # types
     SegmentedImage,

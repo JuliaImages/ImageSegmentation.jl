@@ -6,6 +6,7 @@ version = "1.6.0"
 Clustering = "aaaa29a8-35af-508c-8bc3-b662a17a0fe5"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 Distances = "b4f34e82-e78d-54a5-968a-f98e89d6e8f7"
+ImageBase = "c817782e-172a-44cc-b673-b171935fbb9e"
 ImageCore = "a09fc81d-aa75-5fe9-8630-4744c3626534"
 ImageFiltering = "6a3955dd-da59-5b1f-98d4-e7296123deb5"
 ImageMorphology = "787d08f9-d448-5407-9aad-5290dd7ab264"
@@ -38,6 +39,8 @@ FileIO = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
 ImageMagick = "6218d12a-5da1-5696-b52f-db25d2ecc6d1"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+TestImages = "5e47fb64-e119-507b-a336-dd2b206d9990"
+ImageTransformations = "02fcd773-0e25-5acc-982a-7f6622650795"
 
 [targets]
-test = ["Documenter", "FileIO", "ImageMagick", "SparseArrays", "Test"]
+test = ["Documenter", "FileIO", "ImageMagick", "SparseArrays", "Test", "TestImages", "ImageTransformations"]
