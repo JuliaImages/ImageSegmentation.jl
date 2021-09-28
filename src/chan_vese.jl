@@ -21,7 +21,7 @@ The function argument is described in detail below.
 
 Denote the edge set curve with 𝐶 in the following part.
 
-## `μ::Float64`
+## `μ::Real`
 
 The argument `μ` is a weight controlling the penalty on the total length
 of the curve 𝐶;
@@ -31,7 +31,7 @@ can prevent 𝐶 from being a complex curve.
 
 Default: 0.25
 
-## `λ₁::Float64`, `λ₂::Float64`
+## `λ₁::Real`, `λ₂::Real`
 
 The argument `λ₁` and `λ₂` affect the desired uniformity inside 𝐶 and 
 outside 𝐶, respectively. 
@@ -42,7 +42,7 @@ quite uniform background and varying grayscale objects in the foreground.
 Default: λ₁ = 1.0
          λ₂ = 1.0
 
-## `tol::Float64`
+## `tol::Real`
 
 The argument `tol` controls the level set variation tolerance between 
 iteration. If the L2 norm difference between two level sets of adjacent
@@ -56,7 +56,7 @@ The argument `max_iter` controls the maximum of iteration number.
 
 Default: 500
 
-## `Δt::Float64`
+## `Δt::Real`
 
 The argument `Δt` is a multiplication factor applied at calculations 
 for each step, serves to accelerate the algorithm. Although larger `Δt`
@@ -65,12 +65,22 @@ the solution.
 
 Default: 0.5
 
-## reinitial_flag::Bool
+## normalize::Bool
 
-The arguement `reinitial_flag` controls whether to reinitialize the
-level set in each step.
+The arguement `normalize` controls whether to normalize the input img.
 
 Default: false
+
+## init_level_set
+
+The arguement `init_level_set` allows users to initalize the level set 𝚽⁰, 
+whose size should be the same as input image.
+
+If the default init level set is uesd, it will be defined as:
+𝚽⁰ₓ = ∏ sin(xᵢ ⋅ π / 5), where xᵢ are pixel coordinates, i = 1, 2, ⋯, ndims(img). 
+This level set has fast convergence, but may fail to detect implicit edges.
+
+Default: initial_level_set(size(img))
 
 # Examples
 
@@ -92,32 +102,34 @@ cv_result = chan_vese(img, max_iter=200)
 [3] The Chan-Vese Algorithm - Project Report, Rami Cohen, 2011 :arXiv:`1107.2782`
 """
 function chan_vese(img::GenericGrayImage;
-                   μ::Float64=0.25,
-                   λ₁::Float64=1.0,
-                   λ₂::Float64=1.0,
-                   tol::Float64=1e-3,
+                   μ::Real=0.25,
+                   λ₁::Real=1.0,
+                   λ₂::Real=1.0,
+                   tol::Real=1e-3,
                    max_iter::Int=500,
-                   Δt::Float64=0.5,
-                   reinitial_flag::Bool=false)
+                   Δt::Real=0.5,
+                   normalize::Bool=false,
+                   init_level_set=initial_level_set(size(img)))
     # Signs used in the codes and comments mainly follow paper[3] in the References.
+    axes(img) == axes(init_level_set) || throw(ArgumentError("axes of input image and init_level_set should be equal. Instead they are $(axes(img)) and $(axes(init_level_set))."))
     img = float64.(channelview(img))
     N = ndims(img)
     iter = 0
     h = 1.0
     del = tol + 1
-    img .= img .- minimum(img)
-
-    if maximum(img) != 0
-        img .= img ./ maximum(img)
+    if normalize
+        img .= img .- minimum(img)
+        if maximum(img) != 0
+            img .= img ./ maximum(img)
+        end
     end
 
-    # Precalculation of some constants which helps simplify some integration   
-    # area = length(img) # area = ∫H𝚽 + ∫H𝚽ⁱ
-    area = length(img) # area = ∫H𝚽 + ∫H𝚽ⁱ
-    ∫u₀ = sum(img)     # ∫u₀ = ∫u₀H𝚽 + ∫u₀H𝚽ⁱ
+    # Precalculation of some constants which helps simplify some integration
+    area = length(img)   # area = ∫H𝚽 + ∫H𝚽ⁱ
+    ∫u₀ = sum(img)       # ∫u₀ = ∫u₀H𝚽 + ∫u₀H𝚽ⁱ
 
     # Initialize the level set
-    𝚽ⁿ = initial_level_set(size(img))
+    𝚽ⁿ = init_level_set
 
     # Preallocation and initializtion
     H𝚽 = trues(size(img)...)
@@ -158,12 +170,13 @@ function chan_vese(img::GenericGrayImage;
 
         del = sqrt(diff / area)
 
-        if reinitial_flag
-            # Reinitialize 𝚽 to be the signed distance function to its zero level set
-            reinitialize!(𝚽ⁿ⁺¹, 𝚽ⁿ, Δt, h)
-        else
-            𝚽ⁿ .= 𝚽ⁿ⁺¹
-        end
+        # Reinitializing the level set is not strictly necessary, so this part of code is commented.
+        # If you wants to use the reinitialization, just uncommented codes following.
+        # Function `reinitialize!` is already prepared.
+
+        # reinitialize!(𝚽ⁿ⁺¹, 𝚽ⁿ, Δt, h) # Reinitialize 𝚽 to be the signed distance function to its zero level set
+
+        𝚽ⁿ .= 𝚽ⁿ⁺¹
   
         iter += 1
     end
