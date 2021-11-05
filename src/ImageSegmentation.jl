@@ -5,10 +5,11 @@ import Base: show
 # To keep the symbols in the namespace maintainble, we try to be explicit on symbols
 # importing here, especially for external symbols developed outside of JuliaImages
 using LinearAlgebra, Statistics
-using DataStructures, StaticArrays, ImageCore, ImageFiltering, ImageMorphology, RegionTrees, Distances, StaticArrays, Clustering
+using DataStructures, StaticArrays, ImageCore, ImageFiltering, RegionTrees, Distances, StaticArrays, Clustering
 using Graphs: Edge, AbstractEdge, nv, neighbors, vertices
 using Graphs: add_vertices!, add_edge!
 using MetaGraphs: MetaGraph
+using ImageMorphology: erode
 using SimpleWeightedGraphs: SimpleWeightedGraph
 using ImageCore.ColorVectorSpace: MathTypes
 import Clustering: kmeans, fuzzy_cmeans
