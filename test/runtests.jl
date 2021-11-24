@@ -1,6 +1,8 @@
-using ImageSegmentation, ImageCore, ImageFiltering, Test, SimpleWeightedGraphs, LightGraphs, StaticArrays, DataStructures
+using ImageSegmentation, ImageCore, ImageFiltering, Test, StaticArrays, DataStructures
 using RegionTrees: isleaf, Cell, split!
+using Graphs
 using MetaGraphs: MetaGraph, clear_props!, get_prop, has_prop, set_prop!, props, vertices
+using SimpleWeightedGraphs
 
 using Documenter
 Base.VERSION >= v"1.6" && doctest(ImageSegmentation, manual = false)
