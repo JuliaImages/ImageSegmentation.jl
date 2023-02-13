@@ -284,15 +284,11 @@ end
 Return a function that constructs a box-shaped iterable region.
 
 # Examples
-```jldoctest; setup=:(using ImageSegmentation), filter=r"#\\d+"
-julia> fiter = ImageSegmentation.box_iterator((3, 3))
-#17 (generic function with 1 method)
-
-julia> center = CartesianIndex(17, 24)
-CartesianIndex(17, 24)
-
-julia> fiter(center)
-CartesianIndices((16:18, 23:25))
+```@repl
+using ImageSegmentation # hide
+fiter = ImageSegmentation.box_iterator((3, 3))
+center = CartesianIndex(17, 24)
+fiter(center)
 ```
 """
 function box_iterator(window::Dims{N}) where N
