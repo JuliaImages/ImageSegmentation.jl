@@ -292,10 +292,7 @@ julia> center = CartesianIndex(17, 24)
 CartesianIndex(17, 24)
 
 julia> fiter(center)
-3×3 CartesianIndices{2, Tuple{UnitRange{$Int}, UnitRange{$Int}}}:
- CartesianIndex(16, 23)  CartesianIndex(16, 24)  CartesianIndex(16, 25)
- CartesianIndex(17, 23)  CartesianIndex(17, 24)  CartesianIndex(17, 25)
- CartesianIndex(18, 23)  CartesianIndex(18, 24)  CartesianIndex(18, 25)
+CartesianIndices((16:18, 23:25))
 ```
 """
 function box_iterator(window::Dims{N}) where N
