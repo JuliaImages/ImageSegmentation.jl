@@ -140,4 +140,11 @@
   @test G.weights[45,47] == 0
   @test G.weights[45,65] != 0
 
+  #test box_iterator
+  fiter = ImageSegmentation.box_iterator((3, 3))
+  center = CartesianIndex(17, 24)
+  @test isa(fiter(center), CartesianIndices)
+  @test minimum(fiter(center)) == CartesianIndex(16, 23)
+  @test maximum(fiter(center)) == CartesianIndex(18, 25)
+  
 end
