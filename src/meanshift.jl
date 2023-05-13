@@ -67,7 +67,7 @@ function meanshift(img::Array{CT, 2}, spatial_radius::Real, range_radius::Real; 
         modes[:, i[1] + (i[2]-1)*rows] = [pt[1]/spatial_radius, pt[2]/spatial_radius, pt[3]/range_radius]
     end
 
-    clusters = dbscan(modes, 1.414)
+    clusters = dbscan(modes, 1.414).clusters
     num_segments = length(clusters)
     TM = meantype(CT)
     result              = similar(img, Int)
