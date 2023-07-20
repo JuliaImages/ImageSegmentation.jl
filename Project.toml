@@ -1,6 +1,6 @@
 name = "ImageSegmentation"
 uuid = "80713f31-8817-5129-9cf8-209ff8fb23e1"
-version = "1.8.1"
+version = "1.8.2"
 
 [deps]
 Clustering = "aaaa29a8-35af-508c-8bc3-b662a17a0fe5"
@@ -23,7 +23,7 @@ DataStructures = "0.17.11, 0.18"
 Distances = "0.8, 0.9.2, 0.10"
 Documenter = "0.24, 0.25"
 Graphs = "1.4.1"
-ImageCore = "0.9"
+ImageCore = "0.10"
 ImageFiltering = "0.6, 0.7"
 ImageMorphology = "0.2.6, 0.3, 0.4"
 MetaGraphs = "0.7"
