@@ -238,6 +238,7 @@ function unseeded_region_growing(img::AbstractArray{CT,N}, threshold::Real,
 end
 
 function unseeded_region_growing(img::AbstractArray{CT,N}, threshold::Real, neighbourhood::Function, diff_fn::Function = default_diff_fn) where {CT<:Colorant,N}
+    @assert !isnan(threshold) "The threshold can't be a NaN value, it'll result in an instance per pixel"
     TM = meantype(CT)
 
     # Fast linear<->cartesian indexing lookup
