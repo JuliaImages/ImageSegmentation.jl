@@ -17,11 +17,11 @@ julia> mostly_red(c) = red(c) > green(c) && red(c) > blue(c)
 mostly_red (generic function with 1 method)
 
 julia> img = repeat(LinRange(colorant"red", colorant"blue", 4), 1, 2) # red-to-blue
-4×2 Array{RGB{Float32},2} with eltype RGB{Float32}:
- RGB{Float32}(1.0,0.0,0.0)            RGB{Float32}(1.0,0.0,0.0)
- RGB{Float32}(0.666667,0.0,0.333333)  RGB{Float32}(0.666667,0.0,0.333333)
- RGB{Float32}(0.333333,0.0,0.666667)  RGB{Float32}(0.333333,0.0,0.666667)
- RGB{Float32}(0.0,0.0,1.0)            RGB{Float32}(0.0,0.0,1.0)
+4×2 Matrix{RGB{Float32}}:
+ RGB(1.0, 0.0, 0.0)            RGB(1.0, 0.0, 0.0)
+ RGB(0.666667, 0.0, 0.333333)  RGB(0.666667, 0.0, 0.333333)
+ RGB(0.333333, 0.0, 0.666667)  RGB(0.333333, 0.0, 0.666667)
+ RGB(0.0, 0.0, 1.0)            RGB(0.0, 0.0, 1.0)
 
 julia> flood(mostly_red, [img; img], 1)   # only first copy of `img` is connected
 8×2 BitMatrix:
