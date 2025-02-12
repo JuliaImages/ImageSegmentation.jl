@@ -269,6 +269,8 @@ end
     @test expected_means == seg.segment_means
     @test seg.image_indexmap == expected
 
+    @test_throws ArgumentError unseeded_region_growing(img, NaN, (3,3))
+
     # 3-d image
     img = zeros(RGB{N0f8},(9,9,9))
     img[3:7,3:7,3:7] .= RGB{N0f8}(0.5,0.5,0.5)
