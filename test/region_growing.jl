@@ -1,6 +1,7 @@
 using ImageSegmentation
 using ImageFiltering
 using ImageCore.FixedPointNumbers, ImageCore.ColorTypes
+using ImageMorphology: label_components
 using Test
 
 of_mean_type(p::Colorant) = ImageSegmentation.meantype(typeof(p))(p)
@@ -311,4 +312,28 @@ end
     @info "The deprecation warning below is expected"   # but can be deleted eventually!
     segd = unseeded_region_growing(img, 0.2, [3,3], (c1,c2)->abs(of_mean_type(c1).r - of_mean_type(c2).r))
     @test labels_map(segd) == labels_map(seg)
+
+    # Obtaining contiguous regions by calling label_components
+    # and then building a new SegmentedImage
+    c1, c2 = RGB{N0f8}(0.4,1,0), RGB{N0f8}(1,0.3,0.7)
+    img = [c1 c1 c1 c2 c2 c1 c1 c1;
+           c1 c1 c2 c2 c2 c2 c1 c1;
+           c1 c1 c1 c2 c2 c1 c1 c1;
+    ]
+    seg = unseeded_region_growing(img, 0.2)
+    @test length(segment_labels(seg)) == 2
+    L = label_components(labels_map(seg))
+    function labelgt(idx)
+        img[idx] == c2 && return 2
+        idx[2] < 5 && return 1
+        return 3
+    end
+    @test L == labelgt.(CartesianIndices(img))
+    seg = SegmentedImage(img, L)
+    @test length(segment_labels(seg)) == 3
+    @test labels_map(seg) == L
+    @test segment_mean(seg, 1) ≈ c1
+    @test segment_mean(seg, 2) ≈ c2
+    @test segment_mean(seg, 3) ≈ c1
+    @test segment_pixel_count(seg) == Dict(1=>8, 2=>8, 3=>8)
 end

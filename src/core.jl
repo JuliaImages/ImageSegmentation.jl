@@ -21,6 +21,36 @@ struct SegmentedImage{T<:AbstractArray,U<:Union{Colorant,Real}}
 end
 
 """
+    seg = SegmentedImage(image, image_indexmap::AbstractArray{Int})
+
+Construct a `SegmentedImage` object from the image and the index-label mapping.
+"""
+function SegmentedImage(image::AbstractArray{T,N}, image_indexmap::AbstractArray{Int,N}) where {T<:Union{Colorant,Real}, N}
+    axes(image) == axes(image_indexmap) || error("Image and index map must have the same axes, got $(axes(image)) and $(axes(image_indexmap))")
+
+    segment_labels = Set(image_indexmap)
+    segment_labels = collect(segment_labels)
+    segment_means = Dict{Int,float(T)}()
+    segment_pixel_count = Dict{Int,Int}()
+
+    for i in segment_labels
+        segment_means[i] = zero(T)
+        segment_pixel_count[i] = 0
+    end
+
+    for p in eachindex(image, image_indexmap)
+        label = image_indexmap[p]
+        segment_means[label] += image[p]
+        segment_pixel_count[label] += 1
+    end
+    for i in segment_labels
+        segment_means[i] /= segment_pixel_count[i]
+    end
+
+    SegmentedImage(image_indexmap, segment_labels, segment_means, segment_pixel_count)
+end
+
+"""
     edge = ImageEdge(index1, index2, weight)
 
 Construct an edge in a Region Adjacency Graph. `index1` and `index2` are the integers corresponding to individual pixels/voxels (in the sense of linear indexing via `sub2ind`), and `weight` is the edge weight (measures the dissimilarity between pixels/voxels).
