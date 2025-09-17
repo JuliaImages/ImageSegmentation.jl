@@ -78,7 +78,7 @@ function fast_scanning!(result, img::AbstractArray{CT,N}, threshold::Union{Abstr
     TM = meantype(CT)
     region_means        =   Dict{Int, TM}()                                 # A map conatining (label, mean) pairs
     region_pix_count    =   Dict{Int, Int}()                                # A map conatining (label, count) pairs
-    temp_labels         =   IntDisjointSets(0)                              # Disjoint set to map labels to their equivalence class
+    temp_labels         =   IntDisjointSet(0)                              # Disjoint set to map labels to their equivalence class
     v_neigh             =   MVector{N,Int}(undef)                           # MVector to store valid neighbours
 
     block_length = CartesianIndex(ntuple(i->ceil(Int,length(axes(img,i))/size(threshold,i)), Val(N)))

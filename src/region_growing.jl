@@ -127,10 +127,10 @@ function seeded_region_growing(img::AbstractArray{CT,N}, seeds::AbstractVector{<
 
         # Get the pixels with minimum δ from `pq` and add them to `holdingq` and their labels to `labelsq`
         if !isempty(pq)
-            δ_min = peek(pq)[2]
+            δ_min = first(pq)[2]
         end
-        while (!isempty(pq) && isapprox(peek(pq)[2], δ_min)) #, atol=1e-8))
-            p = cil[dequeue!(pq)]
+        while (!isempty(pq) && isapprox(first(pq)[2], δ_min)) #, atol=1e-8))
+            p = cil[popfirst!(pq)[1]]
             @assert result[p] <= 0
             @inbounds imgp = img[p]
             mindifflabel = -1
@@ -262,12 +262,12 @@ function unseeded_region_growing(img::AbstractArray{CT,N}, threshold::Real, neig
     # Enqueue neighouring points of `start_point`
     for p in neighbourhood(start_point)
         if p != start_point && checkbounds(Bool, img, p) && result[p] == -1
-            enqueue!(neighbours, lic[p], diff_fn(region_means[result[start_point]], img[p]))
+            push!(neighbours, lic[p] => diff_fn(region_means[result[start_point]], img[p]))
         end
     end
 
     while !isempty(neighbours)
-        point = cil[dequeue!(neighbours)]
+        point = cil[popfirst!(neighbours)[1]]
         δ = Inf
         minlabel = -1
         pixelval = img[point]
@@ -322,7 +322,7 @@ function unseeded_region_growing(img::AbstractArray{CT,N}, threshold::Real, neig
                         δ = min(δ, diff_fn(region_means[result[tp]], img[p]))
                     end
                 end
-                enqueue!(neighbours, lic[p], δ)
+                push!(neighbours, lic[p] => δ)
             end
         end
 

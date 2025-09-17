@@ -67,7 +67,7 @@ function watershed(img::AbstractArray{T, N},
             for j in _colon(max(Istart,i-_oneunit(i)), min(i+_oneunit(i),Iend))
                 if segments[j] == 0
                     segments[j] = markers[i]
-                    enqueue!(pq, j, PK(img[i], time_step, j))
+                    push!(pq, j => PK(img[i], time_step, j))
                     time_step += 1
                 end
             end
@@ -75,7 +75,7 @@ function watershed(img::AbstractArray{T, N},
     end
 
     while !isempty(pq)
-        curr_idx, curr_elem = dequeue_pair!(pq)
+        curr_idx, curr_elem = popfirst!(pq)
         segments_current = segments[curr_idx]
 
         # If we're using the compact algorithm, we need assign grouping for a given location

@@ -14,7 +14,7 @@ Parameters:
 function felzenszwalb(edges::Array{ImageEdge}, num_vertices::Int, k::Float64, min_size::Int = 0)
 
     num_edges = length(edges)
-    G = IntDisjointSets(num_vertices)
+    G = IntDisjointSet(num_vertices)
     set_size = ones(num_vertices)
     threshold = fill(convert(Float64,k), num_vertices)
 

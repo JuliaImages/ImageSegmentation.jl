@@ -260,7 +260,7 @@ defined for objects of the type of `d`.
 function prune_segments(s::SegmentedImage, is_rem::Function, diff_fn::Function)
 
     G, vert_map = region_adjacency_graph(s, (i,j)->1)
-    u = IntDisjointSets(nv(G))
+    u = IntDisjointSet(nv(G))
     for v in vertices(G)
         if is_rem(s.segment_labels[v])
             neigh = neighbors(G, v)
