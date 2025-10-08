@@ -1,6 +1,6 @@
 name = "ImageSegmentation"
 uuid = "80713f31-8817-5129-9cf8-209ff8fb23e1"
-version = "1.9.0"
+version = "1.10.0"
 
 [deps]
 Clustering = "aaaa29a8-35af-508c-8bc3-b662a17a0fe5"
@@ -30,7 +30,7 @@ MetaGraphs = "0.7, 0.8"
 RegionTrees = "0.2, 0.3"
 SimpleWeightedGraphs = "1.2"
 StaticArrays = "0.9, 0.10, 0.11, 0.12, 1.0"
-julia = "1.6"
+julia = "1.10"
 
 [extras]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
