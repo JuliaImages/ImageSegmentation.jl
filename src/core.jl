@@ -334,8 +334,7 @@ Return a function that constructs a diamond-shaped iterable region.
 
 # Examples
 ```jldoctest; setup=:(using ImageSegmentation), filter=r"#\\d+"
-julia> fiter = ImageSegmentation.diamond_iterator((3, 3))
-#18 (generic function with 1 method)
+julia> fiter = ImageSegmentation.diamond_iterator((3, 3));
 
 julia> center = CartesianIndex(17, 24)
 CartesianIndex(17, 24)
