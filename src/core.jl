@@ -260,7 +260,7 @@ defined for objects of the type of `d`.
 function prune_segments(s::SegmentedImage, is_rem::Function, diff_fn::Function)
 
     G, vert_map = region_adjacency_graph(s, (i,j)->1)
-    u = IntDisjointSets(nv(G))
+    u = IntDisjointSet(nv(G))
     for v in vertices(G)
         if is_rem(s.segment_labels[v])
             neigh = neighbors(G, v)
@@ -334,8 +334,7 @@ Return a function that constructs a diamond-shaped iterable region.
 
 # Examples
 ```jldoctest; setup=:(using ImageSegmentation), filter=r"#\\d+"
-julia> fiter = ImageSegmentation.diamond_iterator((3, 3))
-#18 (generic function with 1 method)
+julia> fiter = ImageSegmentation.diamond_iterator((3, 3));
 
 julia> center = CartesianIndex(17, 24)
 CartesianIndex(17, 24)
